@@ -1,0 +1,25 @@
+{
+  "name": "fhe-oracle-bridge",
+  "version": "1.0.0",
+  "description": "Privacy-preserving price oracle using Fhenix FHE",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat",
+    "node": "hardhat node"
+  },
+  "devDependencies": {
+    "@cofhe/hardhat-plugin": "^0.4.0",
+    "@cofhe/sdk": "^0.4.0",
+    "@fhenixprotocol/contracts": "^0.3.1",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "chai": "^4.5.0",
+    "ethers": "^6.16.0",
+    "fhenixjs": "^0.4.1",
+    "hardhat": "^2.28.6"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}

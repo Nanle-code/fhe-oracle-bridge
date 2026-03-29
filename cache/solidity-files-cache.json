@@ -1,0 +1,239 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/nanle/Desktop/Hackathon/fhe-oracle-bridge/contracts/AccessRegistry.sol": {
+      "lastModificationDate": 1774600816362,
+      "contentHash": "f7ef1949db0d695f6db9d8d097c357d8",
+      "sourceName": "contracts/AccessRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "AccessRegistry"
+      ]
+    },
+    "/home/nanle/Desktop/Hackathon/fhe-oracle-bridge/contracts/FHEOracleBridge.sol": {
+      "lastModificationDate": 1774600816362,
+      "contentHash": "4bc1fa1d2e8a847d81b216a3fb4f24d5",
+      "sourceName": "contracts/FHEOracleBridge.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./AccessRegistry.sol",
+        "./interfaces/IFHEOracleBridge.sol",
+        "./mocks/FHEMock.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "FHEOracleBridge"
+      ]
+    },
+    "/home/nanle/Desktop/Hackathon/fhe-oracle-bridge/contracts/interfaces/IFHEOracleBridge.sol": {
+      "lastModificationDate": 1774600816363,
+      "contentHash": "89598de867e98b110121badfe49f2c25",
+      "sourceName": "contracts/interfaces/IFHEOracleBridge.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../mocks/FHEMock.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "IFHEOracleBridge"
+      ]
+    },
+    "/home/nanle/Desktop/Hackathon/fhe-oracle-bridge/contracts/mocks/FHEMock.sol": {
+      "lastModificationDate": 1774600816363,
+      "contentHash": "0edf024d5c2de0226518727247e47a2c",
+      "sourceName": "contracts/mocks/FHEMock.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "FHEMock"
+      ]
+    },
+    "/home/nanle/Desktop/Hackathon/fhe-oracle-bridge/contracts/PrivateLiquidator.sol": {
+      "lastModificationDate": 1774600816363,
+      "contentHash": "a1a16d1084271edd7772bcfc34e25f6f",
+      "sourceName": "contracts/PrivateLiquidator.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./mocks/FHEMock.sol",
+        "./interfaces/IFHEOracleBridge.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "PrivateLiquidator"
+      ]
+    },
+    "/home/nanle/Desktop/Hackathon/fhe-oracle-bridge/contracts/MockConsumer.sol": {
+      "lastModificationDate": 1774600816362,
+      "contentHash": "b199d0f8d35559ed9e768dedde52196c",
+      "sourceName": "contracts/MockConsumer.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./mocks/FHEMock.sol",
+        "./interfaces/IFHEOracleBridge.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "MockConsumer"
+      ]
+    }
+  }
+}

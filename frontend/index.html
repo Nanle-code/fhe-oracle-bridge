@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FHE Oracle Bridge</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --bg2:      #0f1217;
+    --bg3:      #151820;
+    --border:   #1e2530;
+    --border2:  #2a3340;
+    --text:     #c8d4e0;
+    --muted:    #4a5a6a;
+    --dim:      #2a3848;
+    --purple:   #7c6ff7;
+    --purple2:  #9d98fa;
+    --teal:     #2dd4bf;
+    --teal2:    #5eead4;
+    --amber:    #f59e0b;
+    --red:      #ef4444;
+    --green:    #22c55e;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--purple);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .logo-icon::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--purple2);
+    border-radius: 2px;
+    transform: rotate(45deg);
+    display: block;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .net-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+  }
+
+  .net-badge.live {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* Sidebar */
+  aside {
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    background: var(--bg2);
+  }
+
+  .nav-section {
+    padding: 0 16px;
+    margin-bottom: 24px;
+  }
+
+  .nav-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--muted);
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(124,111,247,0.12); color: var(--purple2); }
+
+  .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+  }
+
+  .nav-item.active .nav-dot { background: var(--purple); }
+
+  /* Main content */
+  main {
+    padding: 32px;
+    overflow-y: auto;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Section header */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+
+  .section-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Stat row */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-value.purple { color: var(--purple2); }
+  .stat-value.teal   { color: var(--teal);    }
+  .stat-value.amber  { color: var(--amber);   }
+  .stat-value.green  { color: var(--green);   }
+
+  .stat-change {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Feed cards */
+  .feed-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .feed-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feed-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--purple);
+    opacity: 0.6;
+  }
+
+  .feed-card.btc::before { background: var(--amber); }
+
+  .feed-pair {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .feed-id {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: 16px;
+  }
+
+  .feed-price-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .feed-encrypted {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    word-break: break-all;
+    line-height: 1.4;
+  }
+
+  .lock-icon {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .feed-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .feed-meta-item {
+    background: var(--bg3);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .feed-meta-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+  }
+
+  .feed-meta-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .feed-meta-val.ok    { color: var(--green); }
+  .feed-meta-val.warn  { color: var(--amber); }
+
+  /* Access table */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  .table-head {
+    display: grid;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  .access-table .table-head,
+  .access-table .table-row {
+    grid-template-columns: 2fr 1.5fr 1fr 1fr;
+  }
+
+  .feeder-table .table-head,
+  .feeder-table .table-row {
+    grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;
+  }
+
+  .th {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .table-row {
+    display: grid;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    transition: background 0.1s;
+  }
+
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: var(--bg3); }
+
+  .td {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .td.addr {
+    color: var(--purple2);
+    font-size: 11px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .badge.active  { background: rgba(34,197,94,0.12);  color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+  .badge.revoked { background: rgba(239,68,68,0.1);   color: var(--red);   border: 1px solid rgba(239,68,68,0.2); }
+  .badge.stale   { background: rgba(245,158,11,0.1);  color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+
+  /* Terminal log */
+  .terminal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .terminal-dots { display: flex; gap: 6px; }
+  .tdot { width: 10px; height: 10px; border-radius: 50%; }
+  .tdot.r { background: #ff5f56; }
+  .tdot.y { background: #ffbd2e; }
+  .tdot.g { background: #27c93f; }
+
+  .terminal-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 8px;
+  }
+
+  .terminal-body {
+    padding: 16px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    height: 280px;
+    overflow-y: auto;
+  }
+
+  .log-line { display: flex; gap: 12px; }
+  .log-time { color: var(--muted); flex-shrink: 0; }
+  .log-level-info  { color: var(--teal);   flex-shrink: 0; }
+  .log-level-warn  { color: var(--amber);  flex-shrink: 0; }
+  .log-level-err   { color: var(--red);    flex-shrink: 0; }
+  .log-level-ok    { color: var(--green);  flex-shrink: 0; }
+  .log-msg         { color: var(--text);   }
+  .log-msg .hi     { color: var(--purple2); }
+
+  /* Button */
+  .btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn:hover { border-color: var(--purple); color: var(--purple2); }
+  .btn.primary { border-color: var(--purple); color: var(--purple2); background: rgba(124,111,247,0.08); }
+  .btn.primary:hover { background: rgba(124,111,247,0.16); }
+
+  /* Privacy indicator */
+  .privacy-bar {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .privacy-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(124,111,247,0.1);
+    border: 1px solid rgba(124,111,247,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .privacy-text { flex: 1; }
+  .privacy-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 1px; }
+  .privacy-sub   { font-size: 12px; color: var(--muted); }
+
+  .privacy-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    FHE Oracle Bridge
+  </div>
+  <div class="header-right">
+    <span class="net-badge live"><span class="dot"></span>Arbitrum Sepolia</span>
+    <span class="net-badge">CoFHE v0.3</span>
+    <button class="btn primary" onclick="runDemoFlow()">run demo flow</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard', this)">
+        <div class="nav-dot"></div>Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('feeds', this)">
+        <div class="nav-dot"></div>Price feeds
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Access</div>
+      <div class="nav-item" onclick="showPage('consumers', this)">
+        <div class="nav-dot"></div>Consumers
+      </div>
+      <div class="nav-item" onclick="showPage('feeders', this)">
+        <div class="nav-dot"></div>Feeders
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Activity</div>
+      <div class="nav-item" onclick="showPage('log', this)">
+        <div class="nav-dot"></div>Event log
+      </div>
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="section-header">
+        <div>
+          <div class="section-title">// dashboard</div>
+          <div class="section-sub">System overview — no prices exposed</div>
+        </div>
+        <button class="btn" onclick="refreshData()">refresh</button>
+      </div>
+
+      <div class="privacy-bar">
+        <div class="privacy-icon">
+          <svg width="18" height="18" fill="none" stroke="#9d98fa" stroke-width="1.5" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="privacy-text">
+          <div class="privacy-title">Price data fully encrypted</div>
+          <div class="privacy-sub">All stored values are euint256 FHE ciphertexts — unreadable without decryption key</div>
+        </div>
+        <div class="privacy-status"><span class="dot"></span>FHE active</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Active feeds</div>
+          <div class="stat-value teal" id="stat-feeds">2</div>
+          <div class="stat-change">ETH/USD · BTC/USD</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Whitelisted consumers</div>
+          <div class="stat-value purple" id="stat-consumers">2</div>
+          <div class="stat-change">MockConsumer · Liquidator</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active feeders</div>
+          <div class="stat-value amber" id="stat-feeders">2</div>
+          <div class="stat-change">Bonded · Staked</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Rounds completed</div>
+          <div class="stat-value green" id="stat-rounds">—</div>
+          <div class="stat-change">Across all feeds</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">// live feeds</div>
+        <span style="font-size:12px;color:var(--muted)">prices encrypted · metadata only</span>
+      </div>
+
+      <div class="feed-grid">
+        <div class="feed-card eth">
+          <div class="feed-pair">ETH / USD</div>
+          <div class="feed-id">feed_id: 0x01 · TTL: 3600s</div>
+          <div class="feed-price-row">
+            <div class="lock-icon">
+              <svg width="14" height="14" fill="none" stroke="#7c6ff7" stroke-width="1.5" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="feed-encrypted" id="eth-enc">
+              0x8f3a2d…c7b4e9a1 [euint256 · FHE ciphertext]
+            </div>
+          </div>
+          <div class="feed-meta">
+            <div class="feed-meta-item">
+              <div class="feed-meta-label">Round</div>
+              <div class="feed-meta-val ok" id="eth-round">1</div>
+            </div>
+            <div class="feed-meta-item">
+              <div class="feed-meta-label">Status</div>
+              <div class="feed-meta-val ok" id="eth-status">fresh</div>
+            </div>
+            <div class="feed-meta-item">
+              <div class="feed-meta-label">Min feeders</div>
+              <div class="feed-meta-val" id="eth-min">1</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feed-card btc">
+          <div class="feed-pair">BTC / USD</div>
+          <div class="feed-id">feed_id: 0x02 · TTL: 3600s</div>
+          <div class="feed-price-row">
+            <div class="lock-icon">
+              <svg width="14" height="14" fill="none" stroke="#f59e0b" stroke-width="1.5" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="feed-encrypted" id="btc-enc">
+              0x3c91f7…a2d6108b [euint256 · FHE ciphertext]
+            </div>
+          </div>
+          <div class="feed-meta">
+            <div class="feed-meta-item">
+              <div class="feed-meta-label">Round</div>
+              <div class="feed-meta-val ok" id="btc-round">1</div>
+            </div>
+            <div class="feed-meta-item">
+              <div class="feed-meta-label">Status</div>
+              <div class="feed-meta-val ok" id="btc-status">fresh</div>
+            </div>
+            <div class="feed-meta-item">
+              <div class="feed-meta-label">Min feeders</div>
+              <div class="feed-meta-val" id="btc-min">1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">// event log</div>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dots">
+            <div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div>
+          </div>
+          <span class="terminal-title">oracle.log — live events</span>
+        </div>
+        <div class="terminal-body" id="log-body">
+        </div>
+      </div>
+    </div>
+
+    <!-- FEEDS PAGE -->
+    <div class="page" id="page-feeds">
+      <div class="section-header">
+        <div>
+          <div class="section-title">// price feeds</div>
+          <div class="section-sub">All prices stored as euint256 — metadata only shown here</div>
+        </div>
+      </div>
+      <div class="table-wrap access-table">
+        <div class="table-head">
+          <span class="th">description</span>
+          <span class="th">last updated</span>
+          <span class="th">round</span>
+          <span class="th">status</span>
+        </div>
+        <div class="table-row">
+          <span class="td">ETH / USD</span>
+          <span class="td" style="font-size:11px;color:var(--muted)" id="eth-ts">just now</span>
+          <span class="td" id="eth-r2">1</span>
+          <span class="td"><span class="badge active">active</span></span>
+        </div>
+        <div class="table-row">
+          <span class="td">BTC / USD</span>
+          <span class="td" style="font-size:11px;color:var(--muted)" id="btc-ts">just now</span>
+          <span class="td" id="btc-r2">1</span>
+          <span class="td"><span class="badge active">active</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSUMERS PAGE -->
+    <div class="page" id="page-consumers">
+      <div class="section-header">
+        <div>
+          <div class="section-title">// whitelisted consumers</div>
+          <div class="section-sub">Only these addresses can call getEncryptedPrice()</div>
+        </div>
+      </div>
+      <div class="table-wrap access-table">
+        <div class="table-head">
+          <span class="th">address</span>
+          <span class="th">label</span>
+          <span class="th">access</span>
+          <span class="th">calls</span>
+        </div>
+        <div class="table-row">
+          <span class="td addr">0x7Fa9…3B2c</span>
+          <span class="td">MockConsumer v1</span>
+          <span class="td"><span class="badge active">whitelisted</span></span>
+          <span class="td" style="color:var(--muted)">12</span>
+        </div>
+        <div class="table-row">
+          <span class="td addr">0xC4a1…88Fd</span>
+          <span class="td">PrivateLiquidator v1</span>
+          <span class="td"><span class="badge active">whitelisted</span></span>
+          <span class="td" style="color:var(--muted)">4</span>
+        </div>
+        <div class="table-row">
+          <span class="td addr">0x3311…90aB</span>
+          <span class="td">—</span>
+          <span class="td"><span class="badge revoked">revoked</span></span>
+          <span class="td" style="color:var(--muted)">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEEDERS PAGE -->
+    <div class="page" id="page-feeders">
+      <div class="section-header">
+        <div>
+          <div class="section-title">// registered feeders</div>
+          <div class="section-sub">Authorised price submitters · staked ETH shown</div>
+        </div>
+      </div>
+      <div class="table-wrap feeder-table">
+        <div class="table-head">
+          <span class="th">address</span>
+          <span class="th">stake (ETH)</span>
+          <span class="th">rounds</span>
+          <span class="th">last seen</span>
+          <span class="th">status</span>
+        </div>
+        <div class="table-row">
+          <span class="td addr">0xA1b2…4F9e</span>
+          <span class="td" style="color:var(--green)">0.0100</span>
+          <span class="td">8</span>
+          <span class="td" style="color:var(--muted);font-size:11px">2 min ago</span>
+          <span class="td"><span class="badge active">active</span></span>
+        </div>
+        <div class="table-row">
+          <span class="td addr">0xB9c3…7D2a</span>
+          <span class="td" style="color:var(--green)">0.0100</span>
+          <span class="td">8</span>
+          <span class="td" style="color:var(--muted);font-size:11px">2 min ago</span>
+          <span class="td"><span class="badge active">active</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG PAGE -->
+    <div class="page" id="page-log">
+      <div class="section-header">
+        <div>
+          <div class="section-title">// event log</div>
+          <div class="section-sub">On-chain events — PriceSubmitted · FeedUpdated · ConsumerWhitelisted</div>
+        </div>
+        <button class="btn" onclick="clearLog()">clear</button>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dots">
+            <div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div>
+          </div>
+          <span class="terminal-title">oracle.log</span>
+        </div>
+        <div class="terminal-body" id="log-body-2" style="height:500px"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const LOGS = [
+  { t:"INFO",  msg:"FHEOracleBridge deployed · <span class='hi'>0x9aF4…c312</span>" },
+  { t:"INFO",  msg:"AccessRegistry deployed · <span class='hi'>0x2bC7…4a9f</span>" },
+  { t:"OK",    msg:"Feed created · ETH/USD · feedId=1 · TTL=3600s" },
+  { t:"OK",    msg:"Feed created · BTC/USD · feedId=2 · TTL=3600s" },
+  { t:"INFO",  msg:"Feeder registered · <span class='hi'>0xA1b2…4F9e</span>" },
+  { t:"INFO",  msg:"Feeder registered · <span class='hi'>0xB9c3…7D2a</span>" },
+  { t:"OK",    msg:"Feeder staked · 0.01 ETH · <span class='hi'>0xA1b2…4F9e</span>" },
+  { t:"OK",    msg:"Feeder staked · 0.01 ETH · <span class='hi'>0xB9c3…7D2a</span>" },
+  { t:"INFO",  msg:"Consumer whitelisted · MockConsumer v1 · <span class='hi'>0x7Fa9…3B2c</span>" },
+  { t:"INFO",  msg:"Consumer whitelisted · PrivateLiquidator v1 · <span class='hi'>0xC4a1…88Fd</span>" },
+  { t:"OK",    msg:"PriceSubmitted · feedId=1 · feeder=<span class='hi'>0xA1b2…4F9e</span> · round=1" },
+  { t:"OK",    msg:"FeedUpdated · feedId=1 · round=1 · feederCount=1 · price=<span class='hi'>[euint256]</span>" },
+  { t:"OK",    msg:"PriceSubmitted · feedId=2 · feeder=<span class='hi'>0xA1b2…4F9e</span> · round=1" },
+  { t:"OK",    msg:"FeedUpdated · feedId=2 · round=1 · feederCount=1 · price=<span class='hi'>[euint256]</span>" },
+  { t:"INFO",  msg:"getEncryptedPrice() · caller=<span class='hi'>0x7Fa9…3B2c</span> · feedId=1 · access=granted" },
+  { t:"WARN",  msg:"getEncryptedPrice() · caller=0x3311…90aB · feedId=1 · REVERTED: consumer not whitelisted" },
+  { t:"INFO",  msg:"PositionOpened · positionId=1 · collateral=1.0 ETH · liqPx=<span class='hi'>[euint256]</span>" },
+  { t:"OK",    msg:"isLiquidatable(1) → false · price above threshold" },
+];
+
+let logOffset = 0;
+
+function timeStr() {
+  return new Date().toLocaleTimeString('en-US', { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+function appendLog(t, msg, targets=['log-body','log-body-2']) {
+  const cls = { INFO:'log-level-info', OK:'log-level-ok', WARN:'log-level-warn', ERR:'log-level-err' }[t] || 'log-level-info';
+  const line = `<div class="log-line"><span class="log-time">${timeStr()}</span><span class="${cls}">[${t}]</span><span class="log-msg">${msg}</span></div>`;
+  targets.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML += line; el.scrollTop = el.scrollHeight; }
+  });
+}
+
+function initLog() {
+  LOGS.forEach(({t, msg}) => appendLog(t, msg));
+}
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+function clearLog() {
+  ['log-body','log-body-2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+}
+
+function refreshData() {
+  const rounds = document.querySelectorAll('#eth-round,#btc-round,#eth-r2,#btc-r2');
+  rounds.forEach(el => el.textContent = String(parseInt(el.textContent || '1') + 1));
+  document.getElementById('stat-rounds').textContent = '18';
+  const encs = ['eth-enc','btc-enc'];
+  encs.forEach(id => {
+    const hex = Array.from({length:8}, () => Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join('');
+    const end = Array.from({length:8}, () => Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join('');
+    document.getElementById(id).textContent = `0x${hex}…${end} [euint256 · FHE ciphertext]`;
+  });
+  appendLog('OK', `Feeds refreshed · ETH/USD & BTC/USD · price=<span class='hi'>[euint256]</span>`);
+}
+
+async function runDemoFlow() {
+  clearLog();
+  const steps = [
+    [300,  'INFO', "=== judge demo flow started ==="],
+    [800,  'INFO', "STEP 1: Transparent oracle (Chainlink style)"],
+    [1200, 'WARN', "latestAnswer() → 350000000000 ($3,500) — <span style='color:var(--red)'>visible to everyone</span>"],
+    [1800, 'WARN', "MEV bots front-running enabled · stop-losses exposed · institutional access blocked"],
+    [2600, 'INFO', "STEP 2: FHE Oracle Bridge — feeder submits encrypted price"],
+    [3000, 'INFO', "client: encrypt_uint256(350000000000) via CoFHE SDK"],
+    [3600, 'OK',   "PriceSubmitted · feedId=1 · price=<span class='hi'>[euint256 ciphertext]</span>"],
+    [4200, 'OK',   "FeedUpdated · round=2 · storage slot = <span class='hi'>0x8f3a2d…c7b4e9a1</span>"],
+    [4800, 'INFO', "getEncryptedPrice() called by unauthorised address 0x3311…90aB"],
+    [5200, 'WARN', "REVERTED: consumer not whitelisted — price protected"],
+    [6000, 'INFO', "STEP 3: liquidation — zero plaintext price in any tx"],
+    [6400, 'INFO', "PositionOpened · collateral=1 ETH · liqThreshold=<span class='hi'>[euint256]</span>"],
+    [7000, 'OK',   "isLiquidatable(1) → false · price($3500) above threshold($3000)"],
+    [7800, 'INFO', "feeder submits new price — $2,000 drop"],
+    [8400, 'OK',   "FeedUpdated · round=3 · price=<span class='hi'>[euint256]</span>"],
+    [9000, 'OK',   "isLiquidatable(1) → true · FHE comparison: liqPx > currentPx"],
+    [9400, 'OK',   "liquidate(1) executed · reward=0.05 ETH → liquidator"],
+    [10200,'OK',   "=== demo complete · plaintext price appeared in 0 transactions ==="],
+  ];
+  steps.forEach(([delay, t, msg]) => setTimeout(() => appendLog(t, msg), delay));
+  setTimeout(refreshData, 8000);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initLog();
+  setInterval(() => {
+    const live = ['PriceSubmitted','FeedUpdated','getEncryptedPrice','isLiquidatable'];
+    const l = live[Math.floor(Math.random()*live.length)];
+    const feedId = Math.random() > 0.5 ? 1 : 2;
+    if (Math.random() > 0.7) {
+      appendLog('OK', `${l} · feedId=${feedId} · <span class='hi'>[euint256]</span>`);
+    }
+  }, 7000);
+});
+</script>
+</body>
+</html>
