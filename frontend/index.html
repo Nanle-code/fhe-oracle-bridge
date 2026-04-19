@@ -501,6 +501,15 @@
   }
 
   .btn:hover { border-color: var(--purple); color: var(--purple2); }
+
+  .btn.wallet-connected {
+    border-color: rgba(45, 212, 191, 0.45);
+    color: var(--teal2);
+  }
+  .btn.wallet-connected:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
   .btn.primary { border-color: var(--purple); color: var(--purple2); background: rgba(124,111,247,0.08); }
   .btn.primary:hover { background: rgba(124,111,247,0.16); }
 
@@ -540,9 +549,224 @@
     align-items: center;
     gap: 6px;
   }
+
+  /* Privacy proof — side-by-side */
+  .privacy-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .compare-card {
+    border-radius: 10px;
+    padding: 22px 24px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .compare-card.bad {
+    background: linear-gradient(145deg, rgba(239,68,68,0.08), var(--bg2));
+    border-color: rgba(239,68,68,0.35);
+  }
+
+  .compare-card.good {
+    background: linear-gradient(145deg, rgba(45,212,191,0.06), var(--bg2));
+    border-color: rgba(45,212,191,0.35);
+  }
+
+  .compare-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+    color: var(--muted);
+  }
+
+  .compare-card.bad .compare-label { color: #f87171; }
+  .compare-card.good .compare-label { color: var(--teal); }
+
+  .compare-pair {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .compare-value-plain {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 500;
+    color: #f87171;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+
+  .compare-value-plain .unit { font-size: 14px; color: var(--muted); font-weight: 400; }
+
+  .compare-value-enc {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--purple2);
+    background: var(--bg3);
+    border: 1px dashed var(--border2);
+    border-radius: 8px;
+    padding: 16px 18px;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  .compare-foot {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Quorum + freshness */
+  .quorum-row {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .quorum-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .quorum-bar-wrap {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .quorum-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--teal));
+    border-radius: 3px;
+    transition: width 0.35s ease;
+  }
+
+  .freshness-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .freshness-age {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .freshness-pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border2);
+  }
+
+  .freshness-pill.ok { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.08); }
+  .freshness-pill.warn { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.08); }
+  .freshness-pill.bad  { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.08); }
+
+  .round-flash {
+    animation: roundPulse 0.9s ease;
+  }
+
+  @keyframes roundPulse {
+    0% { color: var(--teal2); transform: scale(1.05); }
+    100% { color: inherit; transform: scale(1); }
+  }
+
+  /* Consumer activity */
+  .activity-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 28px;
+  }
+
+  .activity-list {
+    max-height: 220px;
+    overflow-y: auto;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .activity-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--bg3);
+    border-left: 3px solid var(--purple);
+    margin-bottom: 8px;
+  }
+
+  .activity-item.bool-true { border-left-color: var(--amber); }
+  .activity-item.bool-false { border-left-color: var(--muted); }
+  .activity-item.liq       { border-left-color: var(--red); }
+
+  .activity-item .act-title { color: var(--purple2); font-size: 11px; margin-bottom: 4px; }
+  .activity-item .act-detail { color: var(--muted); font-size: 11px; }
+
+  .live-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(45,212,191,0.15);
+    color: var(--teal);
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .demo-banner {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    padding: 10px 32px;
+    background: linear-gradient(90deg, rgba(124,111,247,0.14), rgba(45,212,191,0.07));
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text);
+  }
+  .demo-banner .mono { font-family: var(--mono); font-size: 11px; color: var(--muted); word-break: break-all; }
+  .demo-banner-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .demo-banner a { color: var(--purple2); text-decoration: none; }
+  .demo-banner a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
+
+<div class="demo-banner" id="demo-banner">
+  <div id="demo-banner-line"></div>
+  <div class="demo-banner-right">
+    <a id="demo-banner-explorer" href="https://sepolia.arbiscan.io" target="_blank" rel="noopener">Arbiscan</a>
+    <a id="demo-banner-repo" href="#" target="_blank" rel="noopener" style="display:none">Repository</a>
+    <span id="demo-banner-pages-wrap" style="display:none"> · <a id="demo-banner-pages" href="#" target="_blank" rel="noopener">Hosted demo</a></span>
+  </div>
+</div>
 
 <header>
   <div class="logo">
@@ -550,9 +774,10 @@
     FHE Oracle Bridge
   </div>
   <div class="header-right">
-    <span class="net-badge live"><span class="dot"></span>Arbitrum Sepolia</span>
-    <span class="net-badge">CoFHE v0.3</span>
-    <button class="btn primary" onclick="runDemoFlow()">run demo flow</button>
+    <span class="net-badge live" id="net-badge"><span class="dot"></span>Arbitrum Sepolia</span>
+    <span class="net-badge" id="mode-badge">CoFHE</span>
+    <button type="button" class="btn" id="btn-wallet" onclick="onWalletButtonClick()">connect wallet</button>
+    <button class="btn primary" onclick="refreshData()">refresh</button>
   </div>
 </header>
 
@@ -591,9 +816,9 @@
       <div class="section-header">
         <div>
           <div class="section-title">// dashboard</div>
-          <div class="section-sub">System overview — no prices exposed</div>
+          <div class="section-sub">System overview — metadata only (no plaintext prices)</div>
         </div>
-        <button class="btn" onclick="refreshData()">refresh</button>
+        <button class="btn" onclick="openConfig()">config</button>
       </div>
 
       <div class="privacy-bar">
@@ -605,26 +830,83 @@
         </div>
         <div class="privacy-text">
           <div class="privacy-title">Price data fully encrypted</div>
-          <div class="privacy-sub">All stored values are euint256 FHE ciphertexts — unreadable without decryption key</div>
+          <div class="privacy-sub">All stored values are encrypted handles — UI shows metadata + event history</div>
         </div>
         <div class="privacy-status"><span class="dot"></span>FHE active</div>
+      </div>
+
+      <div class="section-header" style="margin-top:8px">
+        <div>
+          <div class="section-title">// privacy proof</div>
+          <div class="section-sub">What a transparent oracle leaks vs what this stack exposes on-chain</div>
+        </div>
+      </div>
+      <div class="privacy-compare">
+        <div class="compare-card bad">
+          <div class="compare-label">Transparent oracle (e.g. Chainlink-style)</div>
+          <div class="compare-pair">ETH / USD</div>
+          <div class="compare-value-plain" id="demo-plain-price">3241.50 <span class="unit">USD</span></div>
+          <div class="compare-foot">Every observer sees the exact print. Strategies, stops, and whale levels are inferable from public prices and your on-chain txs.</div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-label">FHE oracle (this project)</div>
+          <div class="compare-pair">ETH / USD</div>
+          <div class="compare-value-enc" id="demo-enc-price">euint128 ·0x████ · [encrypted aggregate — median of feeder ciphertexts]</div>
+          <div class="compare-foot">On-chain: only ciphertext handles and events. No plaintext spot in contract storage. Consumers compare against their own encrypted thresholds; only derived booleans can be revealed after CoFHE decrypt.</div>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="config-panel" style="display:none">
+        <div class="table-head" style="grid-template-columns: 1fr 1fr">
+          <span class="th">config</span>
+          <span class="th" style="text-align:right">actions</span>
+        </div>
+        <div style="padding:16px 20px; display:grid; gap:12px">
+          <div style="display:grid; grid-template-columns: 160px 1fr; gap:10px; align-items:center">
+            <div class="td" style="color:var(--muted)">RPC URL</div>
+            <input id="cfg-rpc" style="width:100%; padding:8px 10px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:var(--mono)" />
+          </div>
+          <div style="display:grid; grid-template-columns: 160px 1fr; gap:10px; align-items:center">
+            <div class="td" style="color:var(--muted)">AccessRegistry</div>
+            <input id="cfg-registry" style="width:100%; padding:8px 10px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:var(--mono)" />
+          </div>
+          <div style="display:grid; grid-template-columns: 160px 1fr; gap:10px; align-items:center">
+            <div class="td" style="color:var(--muted)">Oracle</div>
+            <input id="cfg-oracle" style="width:100%; padding:8px 10px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:var(--mono)" />
+          </div>
+          <div style="display:grid; grid-template-columns: 160px 1fr; gap:10px; align-items:center">
+            <div class="td" style="color:var(--muted)">PrivateLiquidator</div>
+            <input id="cfg-liquidator" placeholder="0x… (optional — consumer activity)" style="width:100%; padding:8px 10px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:var(--mono)" />
+          </div>
+          <div style="display:grid; grid-template-columns: 160px 1fr; gap:10px; align-items:center">
+            <div class="td" style="color:var(--muted)">Threshold alerts</div>
+            <input id="cfg-alerts" placeholder="0x… (optional)" style="width:100%; padding:8px 10px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:var(--mono)" />
+          </div>
+          <div style="display:flex; gap:10px; justify-content:flex-end">
+            <button class="btn" onclick="closeConfig()">close</button>
+            <button class="btn primary" onclick="saveConfig()">save</button>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">
+            Tip: defaults are set to your latest Arbitrum Sepolia deployment. “Save” persists to localStorage.
+          </div>
+        </div>
       </div>
 
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">Active feeds</div>
-          <div class="stat-value teal" id="stat-feeds">2</div>
+          <div class="stat-value teal" id="stat-feeds">—</div>
           <div class="stat-change">ETH/USD · BTC/USD</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Whitelisted consumers</div>
-          <div class="stat-value purple" id="stat-consumers">2</div>
-          <div class="stat-change">MockConsumer · Liquidator</div>
+          <div class="stat-value purple" id="stat-consumers">—</div>
+          <div class="stat-change">From AccessRegistry</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Active feeders</div>
-          <div class="stat-value amber" id="stat-feeders">2</div>
-          <div class="stat-change">Bonded · Staked</div>
+          <div class="stat-value amber" id="stat-feeders">—</div>
+          <div class="stat-change">From events</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Rounds completed</div>
@@ -635,7 +917,7 @@
 
       <div class="section-header">
         <div class="section-title">// live feeds</div>
-        <span style="font-size:12px;color:var(--muted)">prices encrypted · metadata only</span>
+        <span style="font-size:12px;color:var(--muted)">round · quorum · freshness <span class="live-tag" id="live-poll-tag">live</span></span>
       </div>
 
       <div class="feed-grid">
@@ -650,22 +932,33 @@
               </svg>
             </div>
             <div class="feed-encrypted" id="eth-enc">
-              0x8f3a2d…c7b4e9a1 [euint256 · FHE ciphertext]
+              [encrypted handle hidden]
             </div>
           </div>
           <div class="feed-meta">
             <div class="feed-meta-item">
               <div class="feed-meta-label">Round</div>
-              <div class="feed-meta-val ok" id="eth-round">1</div>
+              <div class="feed-meta-val ok" id="eth-round">—</div>
             </div>
             <div class="feed-meta-item">
               <div class="feed-meta-label">Status</div>
-              <div class="feed-meta-val ok" id="eth-status">fresh</div>
+              <div class="feed-meta-val ok" id="eth-status">—</div>
             </div>
             <div class="feed-meta-item">
               <div class="feed-meta-label">Min feeders</div>
-              <div class="feed-meta-val" id="eth-min">1</div>
+              <div class="feed-meta-val" id="eth-min">—</div>
             </div>
+          </div>
+          <div class="quorum-row">
+            <div class="quorum-label">
+              <span>Quorum this round</span>
+              <span id="eth-quorum-text" style="color:var(--text)">—</span>
+            </div>
+            <div class="quorum-bar-wrap"><div class="quorum-bar-fill" id="eth-quorum-bar" style="width:0%"></div></div>
+          </div>
+          <div class="freshness-row">
+            <span class="freshness-age" id="eth-age">Last updated —</span>
+            <span class="freshness-pill ok" id="eth-fresh-pill">fresh</span>
           </div>
         </div>
 
@@ -680,22 +973,44 @@
               </svg>
             </div>
             <div class="feed-encrypted" id="btc-enc">
-              0x3c91f7…a2d6108b [euint256 · FHE ciphertext]
+              [encrypted handle hidden]
             </div>
           </div>
           <div class="feed-meta">
             <div class="feed-meta-item">
               <div class="feed-meta-label">Round</div>
-              <div class="feed-meta-val ok" id="btc-round">1</div>
+              <div class="feed-meta-val ok" id="btc-round">—</div>
             </div>
             <div class="feed-meta-item">
               <div class="feed-meta-label">Status</div>
-              <div class="feed-meta-val ok" id="btc-status">fresh</div>
+              <div class="feed-meta-val ok" id="btc-status">—</div>
             </div>
             <div class="feed-meta-item">
               <div class="feed-meta-label">Min feeders</div>
-              <div class="feed-meta-val" id="btc-min">1</div>
+              <div class="feed-meta-val" id="btc-min">—</div>
             </div>
+          </div>
+          <div class="quorum-row">
+            <div class="quorum-label">
+              <span>Quorum this round</span>
+              <span id="btc-quorum-text" style="color:var(--text)">—</span>
+            </div>
+            <div class="quorum-bar-wrap"><div class="quorum-bar-fill" id="btc-quorum-bar" style="width:0%"></div></div>
+          </div>
+          <div class="freshness-row">
+            <span class="freshness-age" id="btc-age">Last updated —</span>
+            <span class="freshness-pill ok" id="btc-fresh-pill">fresh</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="activity-panel">
+        <div class="section-title" style="margin-bottom:4px">// consumer activity</div>
+        <div class="section-sub">Encrypted predicates &amp; sealed comparisons — no threshold or spot leaked. Booleans only after CoFHE decrypt.</div>
+        <div class="activity-list" id="activity-list">
+          <div class="activity-item">
+            <div class="act-title">Waiting for events…</div>
+            <div class="act-detail">Set PrivateLiquidator / Threshold alerts addresses in config, or trigger on-chain checks. Pulls LiquidationCheckPrepared, ThresholdCheckPrepared, ThresholdAlert, PositionLiquidated.</div>
           </div>
         </div>
       </div>
@@ -837,29 +1152,141 @@
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.16.0/dist/ethers.umd.min.js"></script>
 <script>
-const LOGS = [
-  { t:"INFO",  msg:"FHEOracleBridge deployed · <span class='hi'>0x9aF4…c312</span>" },
-  { t:"INFO",  msg:"AccessRegistry deployed · <span class='hi'>0x2bC7…4a9f</span>" },
-  { t:"OK",    msg:"Feed created · ETH/USD · feedId=1 · TTL=3600s" },
-  { t:"OK",    msg:"Feed created · BTC/USD · feedId=2 · TTL=3600s" },
-  { t:"INFO",  msg:"Feeder registered · <span class='hi'>0xA1b2…4F9e</span>" },
-  { t:"INFO",  msg:"Feeder registered · <span class='hi'>0xB9c3…7D2a</span>" },
-  { t:"OK",    msg:"Feeder staked · 0.01 ETH · <span class='hi'>0xA1b2…4F9e</span>" },
-  { t:"OK",    msg:"Feeder staked · 0.01 ETH · <span class='hi'>0xB9c3…7D2a</span>" },
-  { t:"INFO",  msg:"Consumer whitelisted · MockConsumer v1 · <span class='hi'>0x7Fa9…3B2c</span>" },
-  { t:"INFO",  msg:"Consumer whitelisted · PrivateLiquidator v1 · <span class='hi'>0xC4a1…88Fd</span>" },
-  { t:"OK",    msg:"PriceSubmitted · feedId=1 · feeder=<span class='hi'>0xA1b2…4F9e</span> · round=1" },
-  { t:"OK",    msg:"FeedUpdated · feedId=1 · round=1 · feederCount=1 · price=<span class='hi'>[euint256]</span>" },
-  { t:"OK",    msg:"PriceSubmitted · feedId=2 · feeder=<span class='hi'>0xA1b2…4F9e</span> · round=1" },
-  { t:"OK",    msg:"FeedUpdated · feedId=2 · round=1 · feederCount=1 · price=<span class='hi'>[euint256]</span>" },
-  { t:"INFO",  msg:"getEncryptedPrice() · caller=<span class='hi'>0x7Fa9…3B2c</span> · feedId=1 · access=granted" },
-  { t:"WARN",  msg:"getEncryptedPrice() · caller=0x3311…90aB · feedId=1 · REVERTED: consumer not whitelisted" },
-  { t:"INFO",  msg:"PositionOpened · positionId=1 · collateral=1.0 ETH · liqPx=<span class='hi'>[euint256]</span>" },
-  { t:"OK",    msg:"isLiquidatable(1) → false · price above threshold" },
+// ---- Defaults (must match frontend/config.json after each deploy) ----
+const DEFAULT_CFG = {
+  chainId: 421614,
+  chainName: "Arbitrum Sepolia",
+  rpcUrls: [
+    "https://sepolia-rollup.arbitrum.io/rpc",
+    "https://arbitrum-sepolia.blockpi.network/v1/rpc/public",
+    "https://rpc.ankr.com/arbitrum_sepolia",
+  ],
+  rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc",
+  registry: "0x6Bf530a2CDbCE59be2c106F1B5C43BbEc562A7E1",
+  oracle: "0x030815AF032e051346Ec9dD575D781BB52e44B7F",
+  mockConsumer: "0x342e8E3504FbA72A1515C18D4dd67A60B10Ab490",
+  liquidator: "0x418782953085Fc72441E542875E3A25A9Abb74DE",
+  thresholdAlerts: "0xf3CF5c89042e2eFE3986e37BbE02228DCDe56B76",
+  repoUrl: "https://github.com/Nanle-code/fhe-oracle-bridge",
+  publicDemoUrl: "https://nanle-code.github.io/fhe-oracle-bridge/",
+};
+
+const CFG_KEY = "fhe_oracle_bridge_cfg_v1";
+
+function loadPrefs() {
+  try {
+    const raw = localStorage.getItem(CFG_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function saveCfgToStorage(cfg) {
+  const persist = {
+    rpcUrl: cfg.rpcUrl,
+    registry: cfg.registry,
+    oracle: cfg.oracle,
+    liquidator: cfg.liquidator || "",
+    thresholdAlerts: cfg.thresholdAlerts || "",
+  };
+  if (cfg.mockConsumer) persist.mockConsumer = cfg.mockConsumer;
+  localStorage.setItem(CFG_KEY, JSON.stringify(persist));
+}
+
+async function pickFirstWorkingRpc(urls) {
+  const uniq = [...new Set((urls || []).filter(Boolean))];
+  for (const url of uniq) {
+    try {
+      const prov = new ethers.JsonRpcProvider(url);
+      await Promise.race([
+        prov.getBlockNumber(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 4500)),
+      ]);
+      return url;
+    } catch (_) {
+      /* try next */
+    }
+  }
+  return uniq[0] || "https://sepolia-rollup.arbitrum.io/rpc";
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderDeploymentBanner() {
+  const bar = document.getElementById("demo-banner");
+  const line = document.getElementById("demo-banner-line");
+  if (!bar || !line) return;
+  const o = CFG.oracle || "";
+  const orch = o.length > 12 ? o.slice(0, 6) + "…" + o.slice(-4) : o;
+  line.innerHTML =
+    `<strong>On-chain demo</strong> · ${escapeHtml(CFG.chainName || "Arbitrum Sepolia")} <span class="mono">(chain ${CFG.chainId})</span> · RPC <span class="mono">${escapeHtml(CFG.rpcUrl || "")}</span> · Oracle <span class="mono">${orch}</span>`;
+  bar.style.display = "flex";
+  const repo = document.getElementById("demo-banner-repo");
+  if (repo && CFG.repoUrl) {
+    repo.href = CFG.repoUrl;
+    repo.style.display = "";
+  } else if (repo) repo.style.display = "none";
+  const pwrap = document.getElementById("demo-banner-pages-wrap");
+  const pa = document.getElementById("demo-banner-pages");
+  if (CFG.publicDemoUrl && pwrap && pa) {
+    pa.href = CFG.publicDemoUrl;
+    pwrap.style.display = "";
+  } else if (pwrap) pwrap.style.display = "none";
+}
+
+let CFG = { ...DEFAULT_CFG };
+
+// ---- Minimal ABIs ----
+const ORACLE_ABI = [
+  "function feedCount() view returns (uint256)",
+  "function getFeedInfo(uint256 feedId) view returns (string description,uint256 lastUpdated,uint256 roundId,uint256 ttl,uint8 minFeeders,bool active,bool isStale)",
+  "function pendingSubmissions(uint256 feedId) view returns (uint256)",
+  "event PriceSubmitted(uint256 indexed feedId, address indexed feeder, uint256 roundId)",
+  "event FeedUpdated(uint256 indexed feedId, uint256 roundId, uint256 feederCount)",
+  "event QuorumPending(uint256 indexed feedId, uint256 indexed roundId, uint8 submissionCount, uint8 minFeeders)",
 ];
 
-let logOffset = 0;
+const LIQUIDATOR_ABI = [
+  "event LiquidationCheckPrepared(uint256 indexed positionId, uint256 ctHash, address indexed requestedBy)",
+  "event PositionLiquidated(uint256 indexed positionId, address indexed liquidator, uint256 collateral)",
+];
+
+const ALERTS_ABI = [
+  "event ThresholdCheckPrepared(uint256 indexed subId, uint256 indexed feedId, uint256 ctHash, address indexed requestedBy)",
+  "event ThresholdAlert(uint256 indexed subId, uint256 indexed feedId, bool triggered)",
+];
+
+const REGISTRY_ABI = [
+  "function allConsumers() view returns (address[])",
+  "function isWhitelisted(address) view returns (bool)",
+  "function consumerLabels(address) view returns (string)",
+];
+
+let provider;
+let walletProvider;
+let signer;
+let lastRefreshErrorAt = 0;
+let prevEthRound = -1;
+let prevBtcRound = -1;
+let demoPlainMid = 3241.5;
+let evtOracle = null;
+let oracleWiredKey = "";
+let livePollTimer = null;
+
+function shortAddr(a) {
+  if (!a) return "—";
+  return a.slice(0, 6) + "…" + a.slice(-4);
+}
 
 function timeStr() {
   return new Date().toLocaleTimeString('en-US', { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
@@ -874,9 +1301,7 @@ function appendLog(t, msg, targets=['log-body','log-body-2']) {
   });
 }
 
-function initLog() {
-  LOGS.forEach(({t, msg}) => appendLog(t, msg));
-}
+function initLog() {}
 
 function showPage(id, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -892,55 +1317,536 @@ function clearLog() {
   });
 }
 
-function refreshData() {
-  const rounds = document.querySelectorAll('#eth-round,#btc-round,#eth-r2,#btc-r2');
-  rounds.forEach(el => el.textContent = String(parseInt(el.textContent || '1') + 1));
-  document.getElementById('stat-rounds').textContent = '18';
-  const encs = ['eth-enc','btc-enc'];
-  encs.forEach(id => {
-    const hex = Array.from({length:8}, () => Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join('');
-    const end = Array.from({length:8}, () => Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join('');
-    document.getElementById(id).textContent = `0x${hex}…${end} [euint256 · FHE ciphertext]`;
-  });
-  appendLog('OK', `Feeds refreshed · ETH/USD & BTC/USD · price=<span class='hi'>[euint256]</span>`);
+function setWalletButtonDisconnected() {
+  const btn = document.getElementById("btn-wallet");
+  if (!btn) return;
+  btn.textContent = "connect wallet";
+  btn.removeAttribute("title");
+  btn.classList.remove("wallet-connected");
+  btn.setAttribute("aria-label", "Connect wallet");
 }
 
-async function runDemoFlow() {
-  clearLog();
-  const steps = [
-    [300,  'INFO', "=== judge demo flow started ==="],
-    [800,  'INFO', "STEP 1: Transparent oracle (Chainlink style)"],
-    [1200, 'WARN', "latestAnswer() → 350000000000 ($3,500) — <span style='color:var(--red)'>visible to everyone</span>"],
-    [1800, 'WARN', "MEV bots front-running enabled · stop-losses exposed · institutional access blocked"],
-    [2600, 'INFO', "STEP 2: FHE Oracle Bridge — feeder submits encrypted price"],
-    [3000, 'INFO', "client: encrypt_uint256(350000000000) via CoFHE SDK"],
-    [3600, 'OK',   "PriceSubmitted · feedId=1 · price=<span class='hi'>[euint256 ciphertext]</span>"],
-    [4200, 'OK',   "FeedUpdated · round=2 · storage slot = <span class='hi'>0x8f3a2d…c7b4e9a1</span>"],
-    [4800, 'INFO', "getEncryptedPrice() called by unauthorised address 0x3311…90aB"],
-    [5200, 'WARN', "REVERTED: consumer not whitelisted — price protected"],
-    [6000, 'INFO', "STEP 3: liquidation — zero plaintext price in any tx"],
-    [6400, 'INFO', "PositionOpened · collateral=1 ETH · liqThreshold=<span class='hi'>[euint256]</span>"],
-    [7000, 'OK',   "isLiquidatable(1) → false · price($3500) above threshold($3000)"],
-    [7800, 'INFO', "feeder submits new price — $2,000 drop"],
-    [8400, 'OK',   "FeedUpdated · round=3 · price=<span class='hi'>[euint256]</span>"],
-    [9000, 'OK',   "isLiquidatable(1) → true · FHE comparison: liqPx > currentPx"],
-    [9400, 'OK',   "liquidate(1) executed · reward=0.05 ETH → liquidator"],
-    [10200,'OK',   "=== demo complete · plaintext price appeared in 0 transactions ==="],
-  ];
-  steps.forEach(([delay, t, msg]) => setTimeout(() => appendLog(t, msg), delay));
-  setTimeout(refreshData, 8000);
+function setWalletButtonConnected(address) {
+  const btn = document.getElementById("btn-wallet");
+  if (!btn || !address) return;
+  const short = address.length > 12 ? address.slice(0, 6) + "…" + address.slice(-4) : address;
+  btn.textContent = "connected";
+  btn.title = `${address} (${short}) — click to disconnect`;
+  btn.classList.add("wallet-connected");
+  btn.setAttribute("aria-label", `Wallet connected: ${address}. Click to disconnect.`);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  initLog();
-  setInterval(() => {
-    const live = ['PriceSubmitted','FeedUpdated','getEncryptedPrice','isLiquidatable'];
-    const l = live[Math.floor(Math.random()*live.length)];
-    const feedId = Math.random() > 0.5 ? 1 : 2;
-    if (Math.random() > 0.7) {
-      appendLog('OK', `${l} · feedId=${feedId} · <span class='hi'>[euint256]</span>`);
+function disconnectWallet() {
+  walletProvider = null;
+  signer = null;
+  setWalletButtonDisconnected();
+  appendLog("INFO", "Wallet disconnected · using read-only RPC");
+  refreshData();
+}
+
+async function onWalletButtonClick() {
+  if (signer) {
+    disconnectWallet();
+    return;
+  }
+  try {
+    await connectWallet();
+  } catch (e) {
+    appendLog("ERR", String(e?.shortMessage || e?.message || e));
+    setWalletButtonDisconnected();
+  }
+}
+
+function initWalletListeners() {
+  if (!window.ethereum || window.ethereum._fheOracleBridgeListeners) return;
+  window.ethereum._fheOracleBridgeListeners = true;
+  window.ethereum.on("accountsChanged", (accounts) => {
+    if (!accounts || accounts.length === 0) {
+      disconnectWallet();
+      return;
     }
-  }, 7000);
+    (async () => {
+      try {
+        walletProvider = new ethers.BrowserProvider(window.ethereum);
+        signer = await walletProvider.getSigner();
+        const addr = await signer.getAddress();
+        setWalletButtonConnected(addr);
+        refreshData();
+      } catch (_) {
+        disconnectWallet();
+      }
+    })();
+  });
+  window.ethereum.on("chainChanged", () => {
+    window.location.reload();
+  });
+}
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    appendLog("ERR", "No injected wallet found. Install MetaMask.");
+    return;
+  }
+  walletProvider = new ethers.BrowserProvider(window.ethereum);
+  await walletProvider.send("eth_requestAccounts", []);
+  const expected = BigInt(CFG.chainId || 421614);
+  let net = await walletProvider.getNetwork();
+  if (net.chainId !== expected) {
+    appendLog("WARN", `Switch wallet to ${CFG.chainName || "Arbitrum Sepolia"} (chain ${expected})`);
+    const hex = "0x" + expected.toString(16);
+    try {
+      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex }] });
+    } catch (switchErr) {
+      if (switchErr && (switchErr.code === 4902 || switchErr.code === -32603)) {
+        const rpcList = CFG._rpcList && CFG._rpcList.length ? CFG._rpcList : [CFG.rpcUrl];
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: hex,
+              chainName: CFG.chainName || "Arbitrum Sepolia",
+              nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+              rpcUrls: [rpcList[0]],
+              blockExplorerUrls: ["https://sepolia.arbiscan.io"],
+            },
+          ],
+        });
+      } else {
+        appendLog("ERR", "Switch network in MetaMask to Arbitrum Sepolia, then connect again.");
+        setWalletButtonDisconnected();
+        return;
+      }
+    }
+    walletProvider = new ethers.BrowserProvider(window.ethereum);
+    net = await walletProvider.getNetwork();
+    if (net.chainId !== expected) {
+      appendLog("ERR", "Wrong chain after switch. Select Arbitrum Sepolia (421614).");
+      setWalletButtonDisconnected();
+      return;
+    }
+  }
+  signer = await walletProvider.getSigner();
+  const addr = await signer.getAddress();
+  setWalletButtonConnected(addr);
+  initWalletListeners();
+  appendLog("OK", `Wallet connected · <span class='hi'>${addr}</span>`);
+  refreshData();
+}
+
+function openConfig() {
+  document.getElementById("config-panel").style.display = "block";
+  document.getElementById("cfg-rpc").value = CFG.rpcUrl;
+  document.getElementById("cfg-registry").value = CFG.registry;
+  document.getElementById("cfg-oracle").value = CFG.oracle;
+  document.getElementById("cfg-liquidator").value = CFG.liquidator || "";
+  document.getElementById("cfg-alerts").value = CFG.thresholdAlerts || "";
+}
+
+function closeConfig() {
+  document.getElementById("config-panel").style.display = "none";
+}
+
+function saveConfig() {
+  const rpcUrl = document.getElementById("cfg-rpc").value.trim();
+  const registry = document.getElementById("cfg-registry").value.trim();
+  const oracle = document.getElementById("cfg-oracle").value.trim();
+  const liquidator = document.getElementById("cfg-liquidator").value.trim();
+  const thresholdAlerts = document.getElementById("cfg-alerts").value.trim();
+  if (oracle.toLowerCase() !== (CFG.oracle || "").toLowerCase()) {
+    oracleWiredKey = "";
+    if (evtOracle) {
+      try { evtOracle.removeAllListeners(); } catch (e) {}
+      evtOracle = null;
+    }
+  }
+  CFG = { ...CFG, rpcUrl, registry, oracle, liquidator, thresholdAlerts };
+  saveCfgToStorage(CFG);
+  appendLog("OK", "Config saved. Refreshing data…");
+  closeConfig();
+  refreshData();
+}
+
+function setFreshness(ageEl, pillEl, lastUpdated, ttl) {
+  const now = Math.floor(Date.now() / 1000);
+  if (lastUpdated <= 0n) {
+    ageEl.textContent = "Last updated — (no aggregate yet)";
+    pillEl.textContent = "waiting";
+    pillEl.className = "freshness-pill warn";
+    return;
+  }
+  const age = now - Number(lastUpdated);
+  const ttlNum = Number(ttl);
+  const ratio = ttlNum > 0 ? age / ttlNum : 0;
+  ageEl.textContent = `Last updated ${age}s ago`;
+  if (ratio < 0.33) {
+    pillEl.textContent = "fresh";
+    pillEl.className = "freshness-pill ok";
+  } else if (ratio < 0.66) {
+    pillEl.textContent = "aging";
+    pillEl.className = "freshness-pill warn";
+  } else {
+    pillEl.textContent = "stale risk";
+    pillEl.className = "freshness-pill bad";
+  }
+}
+
+function flashRound(elId, newRound, prev) {
+  if (prev < 0 || newRound <= prev) return;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.classList.remove("round-flash");
+  void el.offsetWidth;
+  el.classList.add("round-flash");
+}
+
+function applyQuorumBar(textEl, barEl, pending, minF) {
+  const p = Number(pending);
+  const m = Number(minF) || 1;
+  textEl.textContent = `${p} / ${m} feeders submitted this round`;
+  const pct = m ? Math.min(100, Math.round((p / m) * 100)) : 0;
+  barEl.style.width = pct + "%";
+}
+
+function demoPlainTick() {
+  demoPlainMid += (Math.random() - 0.5) * 2.8;
+  const el = document.getElementById("demo-plain-price");
+  if (el) {
+    el.innerHTML = demoPlainMid.toFixed(2) + ' <span class="unit">USD</span>';
+  }
+}
+
+function wireOracleEvents(oracle) {
+  const key = (CFG.oracle || "").toLowerCase();
+  if (!key) return;
+  if (oracleWiredKey === key && evtOracle) return;
+  if (evtOracle) {
+    try { evtOracle.removeAllListeners(); } catch (e) {}
+  }
+  oracleWiredKey = key;
+  evtOracle = oracle;
+  oracle.on("FeedUpdated", (feedId, roundId, feederCount) => {
+    appendLog("OK", `FeedUpdated · feed=${feedId} · round=${roundId} · quorum met (${feederCount} feeders) · encrypted median committed`);
+    pollLiveOnly();
+  });
+  oracle.on("QuorumPending", (feedId, roundId, submissionCount, minFeeders) => {
+    appendLog("INFO", `QuorumPending · feed=${feedId} · round=${roundId} · ${submissionCount}/${minFeeders} feeders (aggregate not updated yet)`);
+    pollLiveOnly();
+  });
+}
+
+async function pollLiveOnly() {
+  try {
+    const p = walletProvider || new ethers.JsonRpcProvider(CFG.rpcUrl);
+    const oracle = new ethers.Contract(CFG.oracle, ORACLE_ABI, p);
+    const feed1 = await oracle.getFeedInfo(1n);
+    const feed2 = await oracle.getFeedInfo(2n);
+    const p1 = await oracle.pendingSubmissions(1n);
+    const p2 = await oracle.pendingSubmissions(2n);
+
+    document.getElementById("eth-round").textContent = feed1.roundId.toString();
+    document.getElementById("eth-r2").textContent = feed1.roundId.toString();
+    document.getElementById("btc-round").textContent = feed2.roundId.toString();
+    document.getElementById("btc-r2").textContent = feed2.roundId.toString();
+
+    flashRound("eth-round", Number(feed1.roundId), prevEthRound);
+    prevEthRound = Number(feed1.roundId);
+    flashRound("btc-round", Number(feed2.roundId), prevBtcRound);
+    prevBtcRound = Number(feed2.roundId);
+
+    applyQuorumBar(
+      document.getElementById("eth-quorum-text"),
+      document.getElementById("eth-quorum-bar"),
+      p1,
+      feed1.minFeeders
+    );
+    applyQuorumBar(
+      document.getElementById("btc-quorum-text"),
+      document.getElementById("btc-quorum-bar"),
+      p2,
+      feed2.minFeeders
+    );
+
+    setFreshness(document.getElementById("eth-age"), document.getElementById("eth-fresh-pill"), feed1.lastUpdated, feed1.ttl);
+    setFreshness(document.getElementById("btc-age"), document.getElementById("btc-fresh-pill"), feed2.lastUpdated, feed2.ttl);
+
+    const encEl = document.getElementById("demo-enc-price");
+    if (encEl) {
+      encEl.textContent =
+        `euint128 · ETH round ${feed1.roundId} · BTC round ${feed2.roundId} · [encrypted aggregate — no USD on-chain]`;
+    }
+
+    document.getElementById("stat-rounds").textContent = String(Number(feed1.roundId) + Number(feed2.roundId));
+
+    await refreshConsumerActivity(p);
+  } catch (e) {
+    console.warn("pollLiveOnly", e);
+  }
+}
+
+function shortCt(h) {
+  try {
+    const hx = typeof h === "bigint" ? h.toString(16) : BigInt(h).toString(16);
+    return (hx.slice(0, 10) || "0") + "…";
+  } catch {
+    return "—";
+  }
+}
+
+async function refreshConsumerActivity(p) {
+  const list = document.getElementById("activity-list");
+  if (!list || !p) return;
+
+  const liq = CFG.liquidator && ethers.isAddress(CFG.liquidator) ? CFG.liquidator : null;
+  const al = CFG.thresholdAlerts && ethers.isAddress(CFG.thresholdAlerts) ? CFG.thresholdAlerts : null;
+  if (!liq && !al) {
+    list.innerHTML = `<div class="activity-item"><div class="act-title">Configure consumer contracts</div><div class="act-detail">Add PrivateLiquidator and/or PrivateThresholdAlerts addresses in <b>config</b> to stream LiquidationCheckPrepared, PositionLiquidated, ThresholdCheckPrepared, and ThresholdAlert.</div></div>`;
+    return;
+  }
+
+  try {
+    const latest = await p.getBlockNumber();
+    const fromBlock = Math.max(0, latest - 12000);
+    const rows = [];
+
+    if (liq) {
+      const c = new ethers.Contract(liq, LIQUIDATOR_ABI, p);
+      const prep = await c.queryFilter(c.filters.LiquidationCheckPrepared(), fromBlock, latest);
+      prep.forEach((log) => {
+        const a = log.args;
+        rows.push({
+          bn: log.blockNumber,
+          html: `<div class="activity-item"><div class="act-title">Encrypted comparison (liquidation predicate)</div><div class="act-detail">LiquidationCheckPrepared · position #${a.positionId} · predicate 0x${shortCt(a.ctHash)} · sealed FHE · not price nor threshold</div></div>`,
+        });
+      });
+      const liqs = await c.queryFilter(c.filters.PositionLiquidated(), fromBlock, latest);
+      liqs.forEach((log) => {
+        const a = log.args;
+        rows.push({
+          bn: log.blockNumber,
+          html: `<div class="activity-item liq"><div class="act-title">Liquidation executed</div><div class="act-detail">PositionLiquidated · #${a.positionId} · liquidator ${shortAddr(a.liquidator)} · collateral ${ethers.formatEther(a.collateral)} ETH</div></div>`,
+        });
+      });
+    }
+
+    if (al) {
+      const c = new ethers.Contract(al, ALERTS_ABI, p);
+      const prep = await c.queryFilter(c.filters.ThresholdCheckPrepared(), fromBlock, latest);
+      prep.forEach((log) => {
+        const a = log.args;
+        rows.push({
+          bn: log.blockNumber,
+          html: `<div class="activity-item"><div class="act-title">Encrypted comparison (threshold alert)</div><div class="act-detail">ThresholdCheckPrepared · sub ${a.subId} · feed ${a.feedId} · predicate 0x${shortCt(a.ctHash)} · X and spot stay private</div></div>`,
+        });
+      });
+      const alerts = await c.queryFilter(c.filters.ThresholdAlert(), fromBlock, latest);
+      alerts.forEach((log) => {
+        const a = log.args;
+        const t = a.triggered;
+        rows.push({
+          bn: log.blockNumber,
+          html: `<div class="activity-item ${t ? "bool-true" : "bool-false"}"><div class="act-title">Boolean revealed (CoFHE decrypt)</div><div class="act-detail">ThresholdAlert · sub ${a.subId} · feed ${a.feedId} · <b>triggered=${t}</b> · only this bit is public</div></div>`,
+        });
+      });
+    }
+
+    rows.sort((a, b) => b.bn - a.bn);
+    list.innerHTML = rows.slice(0, 14).map((r) => r.html).join("") || `<div class="activity-item"><div class="act-detail">No consumer events in recent blocks.</div></div>`;
+  } catch (e) {
+    list.innerHTML = `<div class="activity-item"><div class="act-title">Activity fetch error</div><div class="act-detail">${String(e?.message || e)}</div></div>`;
+  }
+}
+
+function startLivePolling() {
+  if (livePollTimer) clearInterval(livePollTimer);
+  livePollTimer = setInterval(() => {
+    pollLiveOnly();
+    demoPlainTick();
+  }, 2800);
+}
+
+async function refreshData() {
+  try {
+    // Prefer an injected wallet provider in the browser to avoid CORS issues
+    // that some public RPC endpoints enforce for localhost origins.
+    if (walletProvider) {
+      provider = walletProvider;
+    } else {
+      provider = new ethers.JsonRpcProvider(CFG.rpcUrl);
+    }
+
+    const oracle = new ethers.Contract(CFG.oracle, ORACLE_ABI, provider);
+    const registry = new ethers.Contract(CFG.registry, REGISTRY_ABI, provider);
+
+    // Feeds
+    const feedCount = await oracle.feedCount();
+    document.getElementById("stat-feeds").textContent = feedCount.toString();
+
+    const feed1 = await oracle.getFeedInfo(1n);
+    const feed2 = await oracle.getFeedInfo(2n);
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const ethStale = feed1.isStale;
+    const btcStale = feed2.isStale;
+
+    document.getElementById("eth-round").textContent = feed1.roundId.toString();
+    document.getElementById("eth-r2").textContent = feed1.roundId.toString();
+    document.getElementById("eth-min").textContent = String(feed1.minFeeders);
+    document.getElementById("eth-status").textContent = ethStale ? "stale" : "fresh";
+    document.getElementById("eth-status").className = "feed-meta-val " + (ethStale ? "warn" : "ok");
+    document.getElementById("eth-ts").textContent = feed1.lastUpdated > 0n ? `${nowSec - Number(feed1.lastUpdated)}s ago` : "—";
+
+    document.getElementById("btc-round").textContent = feed2.roundId.toString();
+    document.getElementById("btc-r2").textContent = feed2.roundId.toString();
+    document.getElementById("btc-min").textContent = String(feed2.minFeeders);
+    document.getElementById("btc-status").textContent = btcStale ? "stale" : "fresh";
+    document.getElementById("btc-status").className = "feed-meta-val " + (btcStale ? "warn" : "ok");
+    document.getElementById("btc-ts").textContent = feed2.lastUpdated > 0n ? `${nowSec - Number(feed2.lastUpdated)}s ago` : "—";
+
+    document.getElementById("eth-enc").textContent = "[encrypted handle — not readable from browser]";
+    document.getElementById("btc-enc").textContent = "[encrypted handle — not readable from browser]";
+
+    const pend1 = await oracle.pendingSubmissions(1n);
+    const pend2 = await oracle.pendingSubmissions(2n);
+    applyQuorumBar(
+      document.getElementById("eth-quorum-text"),
+      document.getElementById("eth-quorum-bar"),
+      pend1,
+      feed1.minFeeders
+    );
+    applyQuorumBar(
+      document.getElementById("btc-quorum-text"),
+      document.getElementById("btc-quorum-bar"),
+      pend2,
+      feed2.minFeeders
+    );
+    setFreshness(document.getElementById("eth-age"), document.getElementById("eth-fresh-pill"), feed1.lastUpdated, feed1.ttl);
+    setFreshness(document.getElementById("btc-age"), document.getElementById("btc-fresh-pill"), feed2.lastUpdated, feed2.ttl);
+
+    flashRound("eth-round", Number(feed1.roundId), prevEthRound);
+    prevEthRound = Number(feed1.roundId);
+    flashRound("btc-round", Number(feed2.roundId), prevBtcRound);
+    prevBtcRound = Number(feed2.roundId);
+
+    const encDemo = document.getElementById("demo-enc-price");
+    if (encDemo) {
+      encDemo.textContent =
+        `euint128 · ETH round ${feed1.roundId} · BTC round ${feed2.roundId} · [encrypted aggregate — no USD on-chain]`;
+    }
+
+    const roundsTotal = Number(feed1.roundId) + Number(feed2.roundId);
+    document.getElementById("stat-rounds").textContent = String(roundsTotal);
+
+    wireOracleEvents(oracle);
+    await refreshConsumerActivity(provider);
+
+    // Consumers
+    const consumers = await registry.allConsumers();
+    let whitelistedCount = 0;
+    const rows = [];
+    for (const c of consumers) {
+      const ok = await registry.isWhitelisted(c);
+      if (ok) whitelistedCount++;
+      let label = "";
+      try { label = await registry.consumerLabels(c); } catch {}
+      rows.push({ c, ok, label });
+    }
+    document.getElementById("stat-consumers").textContent = String(whitelistedCount);
+
+    // Update consumers table
+    const consumersPage = document.querySelector("#page-consumers .table-wrap");
+    const head = consumersPage.querySelector(".table-head");
+    consumersPage.innerHTML = "";
+    consumersPage.appendChild(head);
+    rows.forEach((r) => {
+      const row = document.createElement("div");
+      row.className = "table-row";
+      row.innerHTML = `
+        <span class="td addr">${r.c}</span>
+        <span class="td">${r.label || "—"}</span>
+        <span class="td"><span class="badge ${r.ok ? "active" : "revoked"}">${r.ok ? "whitelisted" : "revoked"}</span></span>
+        <span class="td" style="color:var(--muted)">—</span>
+      `;
+      consumersPage.appendChild(row);
+    });
+
+    // Feeders (best-effort from events)
+    const latest = await provider.getBlockNumber();
+    const fromBlock = Math.max(0, latest - 50000);
+    const submittedLogs = await oracle.queryFilter(oracle.filters.PriceSubmitted(), fromBlock, latest);
+    const feederSet = new Set(submittedLogs.map((l) => l.args?.feeder).filter(Boolean));
+    document.getElementById("stat-feeders").textContent = String(feederSet.size);
+
+    // Event log
+    clearLog();
+    appendLog("INFO", `RPC · <span class='hi'>${CFG.rpcUrl}</span>`);
+    appendLog("INFO", `AccessRegistry · <span class='hi'>${CFG.registry}</span>`);
+    appendLog("INFO", `Oracle · <span class='hi'>${CFG.oracle}</span>`);
+    appendLog("OK", `Feeds · ETH round=${feed1.roundId} · BTC round=${feed2.roundId}`);
+    submittedLogs.slice(-20).forEach((l) => {
+      appendLog("OK", `PriceSubmitted · feedId=${l.args.feedId} · feeder=<span class='hi'>${shortAddr(l.args.feeder)}</span> · round=${l.args.roundId}`);
+    });
+
+  } catch (e) {
+    const msg = String(e?.shortMessage || e?.message || e);
+    // Avoid spamming the log if user clicks refresh repeatedly.
+    const now = Date.now();
+    if (now - lastRefreshErrorAt > 1500) {
+      lastRefreshErrorAt = now;
+      if (!walletProvider && (msg.includes("Failed to fetch") || msg.includes("fetch"))) {
+        appendLog(
+          "ERR",
+          `refresh failed · ${msg} · tip: click <span class='hi'>connect wallet</span> to read via MetaMask (avoids CORS)`
+        );
+      } else {
+        appendLog("ERR", `refresh failed · ${msg}`);
+      }
+    }
+  }
+}
+
+async function bootstrap() {
+  initLog();
+  let fileCfg = {};
+  try {
+    const res = await fetch("config.json", { cache: "no-store" });
+    if (res.ok) fileCfg = await res.json();
+  } catch (_) {
+    /* offline or file:// — use DEFAULT_CFG */
+  }
+
+  const merged = { ...DEFAULT_CFG, ...fileCfg, ...loadPrefs() };
+  const candidates =
+    Array.isArray(merged.rpcUrls) && merged.rpcUrls.length
+      ? merged.rpcUrls
+      : [merged.rpcUrl || DEFAULT_CFG.rpcUrl].filter(Boolean);
+  merged._rpcList = candidates;
+  merged.rpcUrl = await pickFirstWorkingRpc(candidates);
+  CFG = merged;
+
+  renderDeploymentBanner();
+  const nb = document.getElementById("net-badge");
+  if (nb) {
+    nb.innerHTML = `<span class="dot"></span>${escapeHtml(CFG.chainName || "Arbitrum Sepolia")}`;
+  }
+
+  document.getElementById("cfg-rpc").value = CFG.rpcUrl;
+  document.getElementById("cfg-registry").value = CFG.registry;
+  document.getElementById("cfg-oracle").value = CFG.oracle;
+  document.getElementById("cfg-liquidator").value = CFG.liquidator || "";
+  document.getElementById("cfg-alerts").value = CFG.thresholdAlerts || "";
+  appendLog("INFO", `Loaded deployment · oracle <span class='hi'>${CFG.oracle}</span> · RPC <span class='hi'>${escapeHtml(CFG.rpcUrl)}</span>`);
+  initWalletListeners();
+  demoPlainTick();
+  startLivePolling();
+  refreshData();
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  bootstrap().catch((e) => {
+    console.error(e);
+    initLog();
+    appendLog("ERR", `bootstrap failed · ${String(e?.message || e)}`);
+  });
 });
 </script>
 </body>

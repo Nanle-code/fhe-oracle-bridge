@@ -1,0 +1,16 @@
+{
+  "chainId": 421614,
+  "chainName": "Arbitrum Sepolia",
+  "rpcUrls": [
+    "https://sepolia-rollup.arbitrum.io/rpc",
+    "https://arbitrum-sepolia.blockpi.network/v1/rpc/public",
+    "https://rpc.ankr.com/arbitrum_sepolia"
+  ],
+  "registry": "0x6Bf530a2CDbCE59be2c106F1B5C43BbEc562A7E1",
+  "oracle": "0x030815AF032e051346Ec9dD575D781BB52e44B7F",
+  "mockConsumer": "0x342e8E3504FbA72A1515C18D4dd67A60B10Ab490",
+  "liquidator": "0x418782953085Fc72441E542875E3A25A9Abb74DE",
+  "thresholdAlerts": "0xf3CF5c89042e2eFE3986e37BbE02228DCDe56B76",
+  "repoUrl": "https://github.com/Nanle-code/fhe-oracle-bridge",
+  "publicDemoUrl": "https://nanle-code.github.io/fhe-oracle-bridge/"
+}
