@@ -26,6 +26,7 @@
     "alert:prepare:base-sepolia": "NODE_OPTIONS='--dns-result-order=ipv4first' hardhat run scripts/prepareThresholdCheck.js --network baseSepolia",
     "demo:arbitrum": "bash scripts/run-arbitrum-demo.sh",
     "frontend": "node scripts/serveFrontend.cjs",
+    "deploy:frontend:surge": "surge frontend/ https://fhe-oracle-bridge-demo.surge.sh",
     "node": "hardhat node"
   },
   "devDependencies": {

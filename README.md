@@ -344,6 +344,16 @@ STEP 3  End-to-end liquidation — price drops to $2,000, position liquidated
 
 The UI in [`frontend/index.html`](./frontend/index.html) reads **canonical deployment metadata** from [`frontend/config.json`](./frontend/config.json) (`chainId`, `rpcUrls`, `registry`, `oracle`, `mockConsumer`, `liquidator`, `thresholdAlerts`). That keeps the hosted app and your Arbitrum Sepolia deployment in sync: **after every redeploy**, update `config.json`, commit, and republish.
 
+**Live demo (Surge):** [https://fhe-oracle-bridge-demo.surge.sh/](https://fhe-oracle-bridge-demo.surge.sh/)
+
+Republish after local edits to `frontend/`:
+
+```bash
+npm run deploy:frontend:surge
+```
+
+([Surge](https://surge.sh) must be installed and you must be logged in once via `surge login`.)
+
 **Local (same machine):**
 
 ```bash
