@@ -71,7 +71,13 @@ async function main() {
   try {
     await oracle.connect(liquidatorAccount).getEncryptedPrice(1n);
   } catch (e) {
-    console.log(`    → REVERTED: "${e.reason}"`);
+    const reason =
+      e?.reason ||
+      e?.revert?.args?.[0] ||
+      e?.shortMessage ||
+      e?.message ||
+      "reverted";
+    console.log(`    → REVERTED: "${reason}"`);
   }
   console.log("\n  Only whitelisted consumer contracts can pull this value.");
   console.log("  Price is NEVER exposed as plaintext on-chain.\n");
@@ -128,7 +134,7 @@ async function main() {
   console.log("  MockConsumer:      " + await consumer.getAddress());
   console.log("  PrivateLiquidator: " + await liquidator.getAddress());
   console.log("\n  Feeds active:      ETH/USD (ID=1), BTC/USD (ID=2)");
-  console.log("  Encryption:        euint256 via Fhenix CoFHE");
+  console.log("  Encryption:        euint128 (consumer-facing) via Fhenix CoFHE");
   console.log("  Price exposure:    NONE — ciphertext only\n");
 }
 

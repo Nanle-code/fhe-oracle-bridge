@@ -303,6 +303,31 @@ STEP 3  End-to-end liquidation — price drops to $2,000, position liquidated
         At no point does a plaintext price appear in any transaction.
 ```
 
+### 5. Live dashboard (shareable URL)
+
+The UI in [`frontend/index.html`](./frontend/index.html) reads **canonical deployment metadata** from [`frontend/config.json`](./frontend/config.json) (`chainId`, `rpcUrls`, `registry`, `oracle`, `mockConsumer`, `liquidator`, `thresholdAlerts`). That keeps the hosted app and your Arbitrum Sepolia deployment in sync: **after every redeploy**, update `config.json`, commit, and republish.
+
+**Local (same machine):**
+
+```bash
+npm run frontend
+```
+
+Then open the URL printed in the terminal (default [http://127.0.0.1:8765/](http://127.0.0.1:8765/); if that port is busy, the launcher picks the next free one). You can pin a port with `PORT=9000 npm run frontend`. Do not use `0.0.0.0` in the browser bar.
+
+**Public URL (recommended: GitHub Pages):**
+
+1. Push this repo to GitHub.
+2. **Repository → Settings → Pages → Build and deployment → Source:** choose **GitHub Actions** (workflow: [`.github/workflows/deploy-frontend-pages.yml`](./.github/workflows/deploy-frontend-pages.yml)).
+3. After the workflow succeeds, open **`https://<your-github-username>.github.io/<repository-name>/`** (GitHub shows the exact URL on the workflow run and in Pages settings).
+4. Optional: set `"publicDemoUrl"` in `frontend/config.json` to that same URL so the top banner includes a **Hosted demo** link.
+
+**Public URL (no Pages setup):** for a **public** GitHub repository, the static app can be opened from jsDelivr (still loads `config.json` from the same path). For this repo:
+
+[https://cdn.jsdelivr.net/gh/Nanle-code/fhe-oracle-bridge@main/frontend/index.html](https://cdn.jsdelivr.net/gh/Nanle-code/fhe-oracle-bridge@main/frontend/index.html)
+
+**GitHub Pages URL** (after you enable the workflow once): [https://nanle-code.github.io/fhe-oracle-bridge/](https://nanle-code.github.io/fhe-oracle-bridge/)
+
 ---
 
 ## Integration Guide
@@ -415,31 +440,31 @@ Then submit a price manually:
 npx hardhat run scripts/submitPrice.js --network helium
 ```
 
-### Migrating from Mock → Real FHE Precompile
+The scripts automatically select the contract set by network:
 
-The project ships with `FHEMock.sol` for local Hardhat testing. To deploy with real on-chain FHE:
+- `hardhat` / `localhost` → local mock contracts: `FHEOracleBridge`, `MockConsumer`, `PrivateLiquidator`
+- `helium` / `arbitrumSepolia` → real Fhenix contracts: `FHEOracleBridgeFhenix`, `MockConsumerFhenix`, `PrivateLiquidatorFhenix`
 
-**In `FHEOracleBridge.sol`:**
+### Local vs Real FHE
 
-```solidity
-// Remove:
-import "./mocks/FHEMock.sol";
+The repository now keeps both paths side-by-side:
 
-// Add:
-import "@fhenixprotocol/contracts/FHE.sol";
-```
+- `contracts/FHEOracleBridge.sol`, `MockConsumer.sol`, `PrivateLiquidator.sol`
+  Local mock path used by tests and `demoFlow.js`
+- `contracts/FHEOracleBridgeFhenix.sol`, `MockConsumerFhenix.sol`, `PrivateLiquidatorFhenix.sol`
+  Real Fhenix path for Helium / Arbitrum Sepolia deployment
 
-**In `submitPrice()`:**
+The key ABI difference is on encrypted inputs:
 
 ```solidity
 // Local mock (accepts plain uint256):
-function submitPrice(uint256 feedId, uint256 encPrice)
+function submitPrice(uint256 feedId, uint256 encPrice);
 
 // Fhenix (accepts encrypted input from CoFHE SDK):
-function submitPrice(uint256 feedId, inEuint256 calldata encPrice)
+function submitPrice(uint256 feedId, inEuint128 calldata encPrice);
 ```
 
-All other logic (`FHE.asEuint256`, `FHE.gt`, `FHE.select`, `ebool`) is identical between mock and production.
+Likewise, consumer thresholds and liquidation prices are plain `uint256` in local mode and `inEuint128` in the real Fhenix contracts.
 
 ---
 
@@ -495,13 +520,15 @@ npx hardhat test
 
 ## Wave Milestones
 
+Authoritative narrative (current vs planned) lives in [`WAVE_UPDATES_SUMMARY.md`](./WAVE_UPDATES_SUMMARY.md). **Release position: Wave 2** — core oracle and access layer are shipped; live-testnet continuity and keeper-driven closures are tracked as Waves 3–5.
+
 | Wave | Deliverable | Status | Grant Target |
 |------|-------------|--------|------|
-| **1** | `FHEOracleBridge.sol` deployed, encrypted price submission, opaque storage proven | ✅ Complete | $3,000 |
-| **2** | `AccessRegistry.sol`, whitelisted consumer pull, staleness guard, non-whitelisted revert | ✅ Complete | $5,000 |
-| **3** | Multi-feeder aggregation, encrypted median, staking/slashing | ✅ Complete | $12,000 |
-| **4** | `PrivateLiquidator.sol`, end-to-end demo script, zero plaintext price in any tx | ✅ Complete | $14,000 |
-| **5** | Multi-asset feeds, integration docs, gas profiling, NY Tech Week demo | ✅ Complete | $16,000 |
+| **1** | `FHEOracleBridge` (per network variant), encrypted `submitPrice`, opaque storage, feeds/TTL | ✅ Complete | $3,000 |
+| **2** | `AccessRegistry`, whitelisted consumer pull, staleness, `MockConsumer*` patterns, integrator-facing demo | 🔄 **Current** | $5,000 |
+| **3** | Continuous **live testnet** multi-feeder quorum + encrypted median ops (beyond local tests) | 📋 Planned | $12,000 |
+| **4** | Always-on **liquidation keeper** + E2E CoFHE liquidation runbook on testnet | 📋 Planned | $14,000 |
+| **5** | Threshold **alert** keeper E2E, multi-asset ops runbooks, production-hardening checklist | 📋 Planned | $16,000 |
 
 ---
 
@@ -509,9 +536,11 @@ npx hardhat test
 
 ### What Was Built
 
-This wave completed the **FHE Oracle Bridge** — a production-ready, privacy-preserving price oracle infrastructure for DeFi protocols on Fhenix. The system enables encrypted price feeds where all price data remains as FHE ciphertext throughout its lifecycle, eliminating MEV exploitation, position hunting, and institutional compliance blockers.
+The repository implements the **FHE Oracle Bridge** stack end-to-end in code (oracle variants, registry, consumers, liquidator, threshold alerts, feeders, keepers, frontend, tests). **Product milestone:** we are executing **Wave 2** now — closing a **canonical live CoFHE testnet** story for whitelisted consumers and clear boundary documentation — while **Waves 3–5** track **continuous live** multi-feeder median, keeper-finalized liquidation, and alert pipelines (see [`WAVE_UPDATES_SUMMARY.md`](./WAVE_UPDATES_SUMMARY.md)).
 
 ### Key Deliverables
+
+The bullets below describe **what is in the repository**; **wave completion** for Waves 3–5 additionally requires **live testnet** and **always-on** processes described in [`WAVE_UPDATES_SUMMARY.md`](./WAVE_UPDATES_SUMMARY.md).
 
 **1. Core Infrastructure (Waves 1-2)**
 - `FHEOracleBridge.sol`: Main oracle contract storing prices as euint256 FHE ciphertexts
@@ -659,9 +688,12 @@ The judge demo (`scripts/demoFlow.js`) executes a 3-step sequence:
 fhe-oracle-bridge/
 ├── contracts/          # Solidity contracts
 │   ├── FHEOracleBridge.sol
+│   ├── FHEOracleBridgeFhenix.sol
 │   ├── AccessRegistry.sol
 │   ├── PrivateLiquidator.sol
+│   ├── PrivateLiquidatorFhenix.sol
 │   ├── MockConsumer.sol
+│   ├── MockConsumerFhenix.sol
 │   └── interfaces/
 ├── scripts/            # Deployment & demo scripts
 │   ├── deploy.js
@@ -690,13 +722,17 @@ fhe-oracle-bridge/
 fhe-oracle-bridge/
 ├── contracts/
 │   ├── AccessRegistry.sol         # Consumer whitelist registry
-│   ├── FHEOracleBridge.sol        # Core oracle — encrypted storage + aggregation
-│   ├── MockConsumer.sol           # Wave 2 demo consumer (price comparisons)
-│   ├── PrivateLiquidator.sol      # Wave 4 — full private liquidation engine
+│   ├── FHEOracleBridge.sol        # Local mock oracle for tests/Hardhat
+│   ├── FHEOracleBridgeFhenix.sol  # Real Fhenix oracle for testnets
+│   ├── MockConsumer.sol           # Local mock consumer integration
+│   ├── MockConsumerFhenix.sol     # Real Fhenix consumer integration
+│   ├── PrivateLiquidator.sol      # Local mock liquidation engine
+│   ├── PrivateLiquidatorFhenix.sol # Real Fhenix liquidation engine
 │   ├── interfaces/
-│   │   └── IFHEOracleBridge.sol   # Interface for consumer integration
+│   │   ├── IFHEOracleBridge.sol   # Local consumer interface
+│   │   └── IFHEOracleBridgeFhenix.sol # Real Fhenix consumer interface
 │   └── mocks/
-│       └── FHEMock.sol            # Local Hardhat stand-in for FHE precompile
+│       └── FHECompat.sol          # Local Hardhat stand-in for FHE precompile
 ├── scripts/
 │   ├── deploy.js                  # Full deployment + setup on any network
 │   ├── demoFlow.js                # Automated judge demo sequence

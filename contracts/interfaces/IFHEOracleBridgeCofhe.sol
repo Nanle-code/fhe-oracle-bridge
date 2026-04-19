@@ -1,16 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../mocks/FHECompat.sol";
+import "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
-/**
- * @title IFHEOracleBridge
- * @notice Interface that consumer contracts use to pull encrypted prices.
- *
- * Prices are exposed to consumers as euint128 for FHE comparisons.
- * Consumers only need this interface — they never import the full oracle.
- */
-interface IFHEOracleBridge {
+interface IFHEOracleBridgeCofhe {
     function getEncryptedPrice(uint256 feedId) external view returns (euint128);
     function getFeedInfo(uint256 feedId) external view returns (
         string memory description,
@@ -22,3 +15,4 @@ interface IFHEOracleBridge {
         bool    isStale
     );
 }
+

@@ -1,25 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./mocks/FHECompat.sol";
-import "./interfaces/IFHEOracleBridge.sol";
+import "@fhenixprotocol/contracts/FHE.sol";
+import "./interfaces/IFHEOracleBridgeFhenix.sol";
 
-/**
- * @title PrivateLiquidator
- * @notice Wave 4 deliverable — real consumer that integrates with FHEOracleBridge.
- *
- * Manages collateralised positions and liquidates them when the encrypted oracle
- * price falls below an encrypted liquidation threshold — zero plaintext exposure.
- */
-contract PrivateLiquidator {
-
-    IFHEOracleBridge public oracle;
+contract PrivateLiquidatorFhenix {
+    IFHEOracleBridgeFhenix public oracle;
     address public owner;
 
     struct Position {
         address  owner;
-        uint256  collateral;           // ETH collateral in wei
-        euint128 encLiquidationPrice;  // FHE-encrypted liquidation threshold
+        uint256  collateral;
+        euint128 encLiquidationPrice;
         uint256  feedId;
         bool     active;
         uint256  createdAt;
@@ -38,19 +30,13 @@ contract PrivateLiquidator {
     }
 
     constructor(address _oracle) {
-        oracle = IFHEOracleBridge(_oracle);
+        oracle = IFHEOracleBridgeFhenix(_oracle);
         owner = msg.sender;
     }
 
-    /**
-     * @notice Open a collateralised position with a private liquidation threshold.
-     *
-     * @param feedId              Price feed to monitor (e.g. 1 = ETH/USD).
-     * @param encLiquidationPrice Threshold value for local tests and demo integration.
-     */
     function openPosition(
         uint256 feedId,
-        uint256 encLiquidationPrice
+        inEuint128 calldata encLiquidationPrice
     ) external payable returns (uint256 positionId) {
         require(msg.value > 0, "Liquidator: must provide collateral");
 
@@ -58,36 +44,26 @@ contract PrivateLiquidator {
         positionId = positionCount;
 
         positions[positionId] = Position({
-            owner:               msg.sender,
-            collateral:          msg.value,
+            owner: msg.sender,
+            collateral: msg.value,
             encLiquidationPrice: FHE.asEuint128(encLiquidationPrice),
-            feedId:              feedId,
-            active:              true,
-            createdAt:           block.timestamp
+            feedId: feedId,
+            active: true,
+            createdAt: block.timestamp
         });
 
         emit PositionOpened(positionId, msg.sender, msg.value);
     }
 
-    /**
-     * @notice Check if a position should be liquidated.
-     *         Returns true if current oracle price < position's liquidation price.
-     *         Comparison happens entirely in FHE — no price revealed.
-     */
     function isLiquidatable(uint256 positionId) public view returns (bool) {
         Position storage pos = positions[positionId];
         require(pos.active, "Liquidator: position not active");
 
         euint128 currentPrice = oracle.getEncryptedPrice(pos.feedId);
-        // Liquidate if liquidationPx > currentPrice (price fell below threshold)
         ebool result = FHE.gt(pos.encLiquidationPrice, currentPrice);
         return FHE.decrypt(result);
     }
 
-    /**
-     * @notice Liquidate an undercollateralised position.
-     *         Anyone can call — incentivised by a 5% reward.
-     */
     function liquidate(uint256 positionId) external {
         require(isLiquidatable(positionId), "Liquidator: not liquidatable");
 
@@ -97,7 +73,7 @@ contract PrivateLiquidator {
         pos.collateral = 0;
 
         uint256 liquidatorReward = collateral * 5 / 100;
-        uint256 remainder        = collateral - liquidatorReward;
+        uint256 remainder = collateral - liquidatorReward;
 
         (bool ok1,) = msg.sender.call{value: liquidatorReward}("");
         require(ok1, "Liquidator: reward transfer failed");
@@ -108,9 +84,6 @@ contract PrivateLiquidator {
         emit PositionLiquidated(positionId, msg.sender, collateral);
     }
 
-    /**
-     * @notice Close a healthy position and reclaim collateral.
-     */
     function closePosition(uint256 positionId) external {
         Position storage pos = positions[positionId];
         require(pos.owner == msg.sender, "Liquidator: not position owner");
@@ -127,7 +100,7 @@ contract PrivateLiquidator {
     }
 
     function updateOracle(address newOracle) external onlyOwner {
-        oracle = IFHEOracleBridge(newOracle);
+        oracle = IFHEOracleBridgeFhenix(newOracle);
     }
 
     receive() external payable {}

@@ -7,7 +7,7 @@ pragma solidity ^0.8.24;
  *
  * Architecture:
  *   - Authorised feeders submit encrypted price data each round.
- *   - Prices are stored as euint256 — never readable as plaintext on-chain.
+ *   - Prices are stored as euint128 — never readable as plaintext on-chain.
  *   - Only whitelisted consumer contracts can pull the encrypted value.
  *   - Consumers decrypt locally inside their own execution context.
  *   - Multi-feeder aggregation: median computed via FHE comparisons (Wave 3).
@@ -26,7 +26,8 @@ pragma solidity ^0.8.24;
 
 import "./AccessRegistry.sol";
 import "./interfaces/IFHEOracleBridge.sol";
-import "@fhenixprotocol/contracts/FHE.sol";
+import "./libraries/MedianLib.sol";
+import "./mocks/FHECompat.sol";
 // ─────────────────────────────────────────────────────────────────────────────
 
 contract FHEOracleBridge is IFHEOracleBridge {
@@ -40,7 +41,7 @@ contract FHEOracleBridge is IFHEOracleBridge {
     uint256 public constant DEFAULT_TTL = 1 hours;
 
     struct Feed {
-        euint256 encryptedPrice;     // FHE-encrypted price — never plaintext
+        euint128 encryptedPrice;     // FHE-encrypted price — never plaintext
         uint256  lastUpdated;        // block.timestamp of last successful round
         uint256  roundId;            // monotonically increasing round counter
         uint256  ttl;                // staleness threshold in seconds
@@ -50,7 +51,7 @@ contract FHEOracleBridge is IFHEOracleBridge {
     }
 
     struct FeederSubmission {
-        euint256 price;
+        euint128 price;
         bool     submitted;
     }
 
@@ -118,15 +119,13 @@ contract FHEOracleBridge is IFHEOracleBridge {
     ) external onlyOwner returns (uint256 feedId) {
         feedCount++;
         feedId = feedCount;
-        feeds[feedId] = Feed({
-            encryptedPrice: FHE.asEuint256(0),
-            lastUpdated:    0,
-            roundId:        0,
-            ttl:            ttl == 0 ? DEFAULT_TTL : ttl,
-            minFeeders:     minFeeders == 0 ? 1 : minFeeders,
-            active:         true,
-            description:    description
-        });
+        Feed storage feed = feeds[feedId];
+        feed.lastUpdated = 0;
+        feed.roundId = 0;
+        feed.ttl = ttl == 0 ? DEFAULT_TTL : ttl;
+        feed.minFeeders = minFeeders == 0 ? 1 : minFeeders;
+        feed.active = true;
+        feed.description = description;
         emit FeedCreated(feedId, description);
     }
 
@@ -187,11 +186,11 @@ contract FHEOracleBridge is IFHEOracleBridge {
      *        uint256 so all logic can be exercised without a real FHE node.
      *
      * @param feedId    Target feed
-     * @param encPrice  Client-side FHE-encrypted price (inEuint256 on Fhenix)
+     * @param encPrice  Plain uint256 in local tests, ciphertext-backed value on Fhenix
      */
     function submitPrice(
         uint256 feedId,
-        inEuint256 calldata encPrice
+        uint256 encPrice
     ) external onlyFeeder feedExists(feedId) {
         Feed storage feed = feeds[feedId];
         uint256 currentRound = feed.roundId + 1; // next round being built
@@ -202,7 +201,7 @@ contract FHEOracleBridge is IFHEOracleBridge {
             "Oracle: already submitted this round"
         );
 
-        euint256 enc = FHE.asEuint256(encPrice);
+        euint128 enc = FHE.asEuint128(encPrice);
 
         submissions[feedId][currentRound][msg.sender] = FeederSubmission({
             price:     enc,
@@ -233,7 +232,7 @@ contract FHEOracleBridge is IFHEOracleBridge {
         address[] storage feederAddrs = roundFeeders[feedId][roundId_];
         uint256 n = feederAddrs.length;
 
-        euint256 aggregated;
+        euint128 aggregated;
 
         if (n == 1) {
             // Single feeder — use directly
@@ -241,11 +240,11 @@ contract FHEOracleBridge is IFHEOracleBridge {
         } else {
             // Multi-feeder: encrypted median via FHE comparisons
             // Collect prices into memory array
-            euint256[] memory prices = new euint256[](n);
+            euint128[] memory prices = new euint128[](n);
             for (uint256 i = 0; i < n; i++) {
                 prices[i] = submissions[feedId][roundId_][feederAddrs[i]].price;
             }
-            aggregated = FHEMock.encryptedMedian(prices);
+            aggregated = MedianLib.encryptedMedian(prices);
         }
 
         feeds[feedId].encryptedPrice = aggregated;
@@ -271,7 +270,7 @@ contract FHEOracleBridge is IFHEOracleBridge {
         view
         onlyWhitelisted
         feedExists(feedId)
-        returns (euint256)
+        returns (euint128)
     {
         Feed storage feed = feeds[feedId];
         require(feed.lastUpdated > 0, "Oracle: no price yet");

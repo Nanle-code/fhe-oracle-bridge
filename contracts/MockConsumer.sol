@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@fhenixprotocol/contracts/FHE.sol";
+import "./mocks/FHECompat.sol";
 import "./interfaces/IFHEOracleBridge.sol";
 
 /**
@@ -44,10 +44,10 @@ contract MockConsumer {
      *         Entirely in FHE — threshold and price never plaintext on-chain.
      *
      * @param feedId     Feed to check
-     * @param threshold  Encrypted threshold (inEuint128 from CoFHE SDK)
+     * @param threshold  Threshold value for local tests and demo integration
      * @return           True if price > threshold
      */
-    function isPriceAbove(uint256 feedId, inEuint128 calldata threshold) external view returns (bool) {
+    function isPriceAbove(uint256 feedId, uint256 threshold) external view returns (bool) {
         euint128 currentPrice = oracle.getEncryptedPrice(feedId);
         euint128 encThreshold = FHE.asEuint128(threshold);
         ebool result = FHE.gt(currentPrice, encThreshold);
@@ -57,7 +57,7 @@ contract MockConsumer {
     /**
      * @notice Check if price is below threshold (e.g. buy signal).
      */
-    function isPriceBelow(uint256 feedId, inEuint128 calldata threshold) external view returns (bool) {
+    function isPriceBelow(uint256 feedId, uint256 threshold) external view returns (bool) {
         euint128 currentPrice = oracle.getEncryptedPrice(feedId);
         euint128 encThreshold = FHE.asEuint128(threshold);
         ebool result = FHE.lt(currentPrice, encThreshold);
@@ -70,8 +70,8 @@ contract MockConsumer {
      */
     function isWithinBand(
         uint256 feedId,
-        inEuint128 calldata lower,
-        inEuint128 calldata upper
+        uint256 lower,
+        uint256 upper
     ) external view returns (bool) {
         euint128 price    = oracle.getEncryptedPrice(feedId);
         euint128 encLower = FHE.asEuint128(lower);
@@ -87,12 +87,12 @@ contract MockConsumer {
      *         price < liquidationPrice → trigger liquidation.
      *
      * @param position         The position address being checked.
-     * @param liquidationPrice Encrypted price below which we liquidate (inEuint128).
+     * @param liquidationPrice Threshold below which we liquidate.
      */
     function checkLiquidation(
         address position,
         uint256 feedId,
-        inEuint128 calldata liquidationPrice
+        uint256 liquidationPrice
     ) external returns (bool shouldLiquidate) {
         euint128 currentPrice = oracle.getEncryptedPrice(feedId);
         euint128 encLiqPrice  = FHE.asEuint128(liquidationPrice);
