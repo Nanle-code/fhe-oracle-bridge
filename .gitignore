@@ -1,0 +1,30 @@
+# ── Secrets & local env (never push) ─────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+credentials.json
+**/secrets.json
+
+# ── Logs & local scratch ──────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Dependencies (use `npm install`) ─────────────────────────────────────
+node_modules/
+
+# ── Hardhat (regenerate with `npm run compile`) ───────────────────────────
+cache/
+artifacts/
+
+# ── OS / editor ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
