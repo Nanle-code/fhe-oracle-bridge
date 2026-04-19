@@ -12,20 +12,57 @@ Built for the **Privacy-by-Design dApp Buildathon** on Fhenix.
 
 ---
 
+## Project overview
+
+### What this project is
+
+**FHE Oracle Bridge** is infrastructure for a **privacy-preserving price oracle** on [Fhenix](https://fhenix.io): market prices are turned into **FHE ciphertext** off-chain, written on-chain as encrypted handles, optionally aggregated (e.g. **encrypted median** across feeders), and consumed by **whitelisted** DeFi contracts that compare and act on prices **without a public plaintext tick** like a traditional oracle.
+
+The repository includes:
+
+- **Contracts** — oracle core, `AccessRegistry`, reference and production consumers (`MockConsumer*`, `PrivateLiquidator*`, threshold alerts on CoFHE), plus **network-specific builds** (local / Hardhat mocks, **CoFHE** for Arbitrum Sepolia & Base Sepolia, **native Fhenix** for Helium-style deployments).
+- **Off-chain automation** — price submission, **feeder daemon**, liquidation and threshold **keepers** (CoFHE decrypt / complete flows).
+- **Frontend** — static dashboard (`frontend/`) driven by [`frontend/config.json`](./frontend/config.json) for RPC and deployed addresses.
+- **Tests & demos** — Hardhat suite and `scripts/demoFlow.js` for the judge-style narrative.
+
+### What it is expected to do
+
+| Capability | Expectation |
+|------------|-------------|
+| **Private ingest** | Feeders fetch a real price, **encrypt locally**, call `submitPrice` so only ciphertext lands on-chain; **no one** can read another feeder’s submission from chain state. |
+| **Private aggregation** | With multiple feeders, the protocol finalizes an **encrypted median** (or configured policy) using **FHE comparisons**, not plaintext math in a public aggregator. |
+| **Encrypted questions** | Consumer contracts ask predicates over the encrypted aggregate (e.g. “**is spot below my liquidation level?**”); **thresholds stay ciphertext** until the trust model allows a reveal step (e.g. CoFHE async decrypt for a **boolean**). |
+| **Actions from booleans** | **Liquidations** and **threshold alerts** are designed to **complete from yes/no outcomes** (plus keeper txs where applicable), not from publishing a USD print on-chain. |
+| **Access control** | Only **whitelisted** addresses receive `getEncryptedPrice` (or equivalent); others **revert**. Staleness (**TTL**) rejects stale reads. |
+
+**Explicit non-goals for this stack (v1):** a general-purpose oracle for arbitrary off-chain data; a large decentralized feeder **validator set**; a tokenized **fee marketplace**. The focus is **encrypted price rails** for DeFi.
+
+### Roadmap & wave documentation
+
+Delivery is tracked in waves (what is **done**, what is **in progress**, what is **planned** for live testnet operations). See the full narrative, exit criteria, and status table here:
+
+**[Wave updates summary (WAVE_UPDATES_SUMMARY.md)](./WAVE_UPDATES_SUMMARY.md)**
+
+The README [Wave Milestones](#wave-milestones) table stays the short index; the linked doc is the **authoritative** roadmap write-up.
+
+---
+
 ## Table of Contents
 
-1. [The Problem](#the-problem)
-2. [Solution](#solution)
-3. [Architecture](#architecture)
-4. [Core Innovation: Encrypted Aggregation](#core-innovation-encrypted-aggregation)
-5. [Contracts](#contracts)
-6. [Quick Start](#quick-start)
-7. [Integration Guide](#integration-guide)
-8. [Deployment](#deployment)
-9. [Testing](#testing)
-10. [Security Model](#security-model)
-11. [Wave Milestones](#wave-milestones)
-12. [Resources](#resources)
+1. [Project overview](#project-overview)
+2. [The Problem](#the-problem)
+3. [Solution](#solution)
+4. [Architecture](#architecture)
+5. [Core Innovation: Encrypted Aggregation](#core-innovation-encrypted-aggregation)
+6. [Contracts](#contracts)
+7. [Quick Start](#quick-start)
+8. [Integration Guide](#integration-guide)
+9. [Deployment](#deployment)
+10. [Testing](#testing)
+11. [Security Model](#security-model)
+12. [Wave Milestones](#wave-milestones)
+13. [Wave updates & roadmap (detailed)](./WAVE_UPDATES_SUMMARY.md)
+14. [Resources](#resources)
 
 ---
 
