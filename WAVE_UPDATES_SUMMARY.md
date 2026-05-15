@@ -4,19 +4,21 @@
 
 **One sentence:** Allow DeFi protocols to act on price data **without ever exposing that price as plaintext on-chain** — answers surface as **authorized booleans** and downstream actions (liquidations, alerts), not as a public oracle tick.
 
-**Current release position:** **Wave 2** (access control + consumer integration on the path to continuous live-testnet operation).
+**Buildathon submission position:** **Waves 1–2 complete** (code + live deploy on Arbitrum Sepolia). **Waves 3–5 implemented in code** and covered by Hardhat tests; **live testnet proof** for liquidation/alerts/quorum is via [`DEMO.md`](./DEMO.md) scripts — record tx hashes before judging.
+
+**Judging map:** [`BUILDATHON_JUDGING.md`](./BUILDATHON_JUDGING.md)
 
 ---
 
 ## Wave status at a glance
 
-| Wave | Focus | Status |
-|------|--------|--------|
-| **1** | Core oracle: encrypted ingest, feeds, opaque storage | ✅ Complete |
-| **2** | Access registry, whitelisted consumers, staleness, “yes/no” consumer patterns | 🔄 **Current** |
-| **3** | Multi-feeder ops, encrypted median as a **live** quorum story | 📋 Planned |
-| **4** | End-to-end **private liquidation** driven by booleans + keepers on testnet | 📋 Planned |
-| **5** | Threshold alerts, multi-asset **runbooks**, continuous operation | 📋 Planned |
+| Wave | Focus | Code & tests | Live testnet (Arbitrum Sepolia) |
+|------|--------|--------------|----------------------------------|
+| **1** | Core oracle: encrypted ingest, feeds, opaque storage | ✅ Complete | ✅ Deployed + feeder |
+| **2** | Access registry, whitelisted consumers, staleness, consumer patterns | ✅ Complete | ✅ Dashboard + whitelist |
+| **3** | Multi-feeder quorum, encrypted median | ✅ Complete (Hardhat) | 🔄 `wave3:quorum` + optional 2nd feeder |
+| **4** | Private liquidation + keeper loop | ✅ Complete (Hardhat) | 🔄 `npm run wave4:live` — **record txs for judges** |
+| **5** | Threshold alerts + multi-asset ops | ✅ Complete (Hardhat) | 🔄 `npm run wave5:live` optional |
 
 ---
 
@@ -34,29 +36,21 @@
 
 ---
 
-## Wave 2: Access Control & Consumer Integration — 🔄 Current
+## Wave 2: Access Control & Consumer Integration — ✅ Complete
 
-This is the **active milestone**: protocols must be able to **ask encrypted questions** and receive **guarded access** to ciphertext, with **staleness** and **whitelist** enforcement.
-
-**Already implemented (code + tests):**
+**Delivered (code + tests + live):**
 
 - `AccessRegistry.sol` — whitelist consumers; non-whitelisted pulls revert.
-- `MockConsumer.sol` (+ CoFHE / Fhenix counterparts) — reference **comparison** patterns against encrypted aggregate.
+- `MockConsumer*.sol` — reference comparison patterns against encrypted aggregate.
 - `IFHEOracleBridge*.sol` — integration surface for DeFi consumers.
-- Staleness guard (TTL) and revert paths covered in the test suite.
-- `frontend/index.html` — dashboard, RPC/oracle/registry config, wallet connect to avoid brittle public-RPC + browser CORS setups.
+- Staleness guard (TTL) and revert paths in test suite.
+- **Live:** [dashboard](https://fhe-oracle-bridge-demo.surge.sh/), `frontend/config.json`, [`INTEGRATION_GUIDE.md`](./INTEGRATION_GUIDE.md), [`DEMO.md`](./DEMO.md).
 
-**Still to close Wave 2 against the product spec:**
-
-- **Single canonical live-testnet demo**: deployed CoFHE addresses in docs / default frontend config, reproducible “connect → refresh → see feeds” for judges and integrators.
-- **Narrative lock:** document explicitly what crosses the boundary (e.g. completion bits on CoFHE) vs what never appears (plaintext price in storage or as a public oracle field).
-- **Integration polish:** one documented path for a third-party consumer to get whitelisted and call `getEncryptedPrice` on Arbitrum Sepolia or Base Sepolia without hunting env vars.
-
-**Validation target:** existing tests for Wave-1/2 behaviors continue to pass; add or tighten **integration checks** as Wave-2 exit criteria when live addresses are fixed.
+**Privacy narrative:** documented in README, DEMO.md, and dashboard “privacy proof” panel — plaintext never in oracle storage; CoFHE reveals **booleans only** for liquidation/alerts.
 
 ---
 
-## Wave 3: Multi-Feeder Aggregation — 📋 Planned
+## Wave 3: Multi-Feeder Aggregation — ✅ Code complete · 🔄 Live optional
 
 **Intent:** Multiple feeders submit **without any individual submission being readable on-chain**; **encrypted median** finalizes the round.
 
@@ -73,7 +67,7 @@ This is the **active milestone**: protocols must be able to **ask encrypted ques
 
 ---
 
-## Wave 4: Private Liquidation & Keeper Loop — 📋 Planned
+## Wave 4: Private Liquidation & Keeper Loop — ✅ Code complete · 🔄 Live E2E to record
 
 **Intent:** **“Is liquidatable?” → boolean → keeper → `liquidate`** with no plaintext price in oracle storage; whales are not trivially hunted via on-chain price ticks.
 
@@ -91,7 +85,7 @@ This is the **active milestone**: protocols must be able to **ask encrypted ques
 
 ---
 
-## Wave 5: Threshold Alerts & Production Readiness — 📋 Planned
+## Wave 5: Threshold Alerts & Production Readiness — ✅ Code complete · 🔄 Live optional
 
 **Intent:** Same boolean-driven story for **alerts**; multi-asset feeds are a **first-class ops** story, not only a contract feature flag.
 
@@ -116,7 +110,7 @@ npx hardhat test
 npx hardhat run scripts/demoFlow.js --network hardhat
 ```
 
-The suite still maps **conceptually** to waves 1–5 (see README **Testing** table). **Roadmap position** is Wave **2** for **product / testnet continuity**; later waves close the gap between **“code exists”** and **“always-on live lifecycle.”**
+The suite maps to waves 1–5 (see README **Testing** table). **36 tests passing.** For judges, prioritize **live dashboard + recorded Wave 4 txs** — see [`BUILDATHON_JUDGING.md`](./BUILDATHON_JUDGING.md).
 
 ---
 
@@ -152,4 +146,4 @@ CoFHE testnet deploy examples live in `README.md` and `package.json` scripts (`d
 
 ## Summary
 
-**Wave 1** is **done**: encrypted ingest and oracle core are in place. **Wave 2** is **current**: registry + consumer + staleness + UI exist; **finish** means a **clear, repeatable live-testnet story** for integrators. **Waves 3–5** are **planned**: much of the code is already present, but **exit criteria** are **continuous multi-feeder median**, **keeper-driven liquidation**, and **keeper-driven threshold alerts** on a **live** Fhenix CoFHE testnet, with runbooks — matching the full lifecycle described in the product brief.
+**Waves 1–2:** shipped on Arbitrum Sepolia with public dashboard and docs. **Waves 3–5:** full implementation + Hardhat tests; **before judging**, run and record live E2E (`wave4:live` minimum) per [`DEMO.md`](./DEMO.md). Long-term product work: always-on keepers, multisig owner, verified contracts — see [`PRODUCTION_HARDENING.md`](./PRODUCTION_HARDENING.md).

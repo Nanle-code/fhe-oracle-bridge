@@ -1,5 +1,33 @@
 # FHE Oracle Bridge - Buildathon Submission
 
+## Quick links (judges start here)
+
+| | |
+|---|---|
+| **Live demo** | https://fhe-oracle-bridge-demo.surge.sh/ |
+| **Repository** | https://github.com/Nanle-code/fhe-oracle-bridge |
+| **Judging criteria map** | [`BUILDATHON_JUDGING.md`](./BUILDATHON_JUDGING.md) |
+| **Testnet runbook** | [`DEMO.md`](./DEMO.md) |
+| **Demo video** | _(add URL before final submit)_ |
+
+**Network:** Arbitrum Sepolia · **Contracts:** see [`frontend/config.json`](./frontend/config.json) or BUILDATHON_JUDGING.md
+
+---
+
+## Judging criteria (summary)
+
+| Criterion | Evidence |
+|-----------|----------|
+| **Privacy Architecture** | `euint128` storage, AccessRegistry, encrypted median, bool-only CoFHE liquidation |
+| **Innovation & Originality** | On-chain FHE median; predicate oracle vs public index feeds |
+| **User Experience** | Live dashboard + `demoFlow.js` + DEMO.md |
+| **Technical Execution** | 36 Hardhat tests, deployed CoFHE contracts, keeper/feeder automation |
+| **Market Potential** | MEV / whale hunting / institutional privacy; lending & perps integrators |
+
+Full detail: [`BUILDATHON_JUDGING.md`](./BUILDATHON_JUDGING.md)
+
+---
+
 ## Project Overview
 
 **FHE Oracle Bridge** is a privacy-preserving price oracle infrastructure built on Fhenix's Fully Homomorphic Encryption (FHE) technology. It solves the fundamental problem of price data exposure in DeFi by storing and operating on prices as encrypted ciphertext throughout their entire lifecycle.
@@ -37,6 +65,15 @@ getEncryptedPrice(feedId) → euint256  // FHE ciphertext — unreadable
 ✅ Consumer comparisons (gt, lt, and) run encrypted — only boolean result revealed
 ✅ Liquidations fire correctly — zero plaintext price in any transaction
 ✅ Non-whitelisted callers reverted — cryptographic access control
+
+## Wave status (honest for judges)
+
+| Wave | Code & tests | Live testnet |
+|------|--------------|--------------|
+| 1–2 | ✅ | ✅ Deployed + dashboard |
+| 3–5 | ✅ Hardhat | 🔄 Run `wave4:live` / `wave3:quorum` — record txs in DEMO.md |
+
+See [`WAVE_UPDATES_SUMMARY.md`](./WAVE_UPDATES_SUMMARY.md) for detail.
 
 ## Wave Updates - Detailed Description
 
@@ -449,7 +486,9 @@ bool result = FHE.decrypt(isAbove);  // Only bool revealed
 
 ## Team & Contact
 
-[Add your team information and contact details here]
+- **Repository:** https://github.com/Nanle-code/fhe-oracle-bridge  
+- **Live demo:** https://fhe-oracle-bridge-demo.surge.sh/  
+- **Contact:** _(add Telegram / email for judges)_
 
 ## License
 

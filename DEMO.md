@@ -1,5 +1,7 @@
 # FHE Oracle Bridge — Live Testnet Demo
 
+**Judges:** see also [`BUILDATHON_JUDGING.md`](./BUILDATHON_JUDGING.md) for criteria → evidence map.
+
 **Network:** Arbitrum Sepolia (chain `421614`)  
 **Dashboard:** [https://fhe-oracle-bridge-demo.surge.sh/](https://fhe-oracle-bridge-demo.surge.sh/)  
 **Explorer:** [Arbiscan Sepolia](https://sepolia.arbiscan.io)

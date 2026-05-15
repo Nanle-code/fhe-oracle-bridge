@@ -8,7 +8,7 @@ Built for the **Privacy-by-Design dApp Buildathon** on Fhenix.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://soliditylang.org)
 [![Fhenix](https://img.shields.io/badge/Network-Fhenix%20CoFHE-purple.svg)](https://fhenix.io)
-[![Tests](https://img.shields.io/badge/Tests-25%20passing-green.svg)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-36%20passing-green.svg)](#testing)
 
 ---
 
@@ -323,7 +323,7 @@ ETHERSCAN_API_KEY=...          # Optional: contract verification
 npx hardhat test
 ```
 
-Expected: **25 passing** tests (~10s on Hardhat node) with gas report.
+Expected: **36 passing** tests (~10s on Hardhat node) with gas report.
 
 ### 4. Run the Judge Demo
 
@@ -342,7 +342,8 @@ STEP 3  End-to-end liquidation — price drops to $2,000, position liquidated
 
 ### 5. Live testnet demo
 
-See **[DEMO.md](./DEMO.md)** for Arbitrum Sepolia judge runbook (`npm run demo:preflight`, `npm run wave4:live`).
+See **[DEMO.md](./DEMO.md)** for Arbitrum Sepolia judge runbook (`npm run demo:preflight`, `npm run wave4:live`).  
+**Buildathon judges:** criteria → evidence map in **[BUILDATHON_JUDGING.md](./BUILDATHON_JUDGING.md)**.
 
 ### 6. Live dashboard (shareable URL)
 
@@ -571,15 +572,15 @@ npx hardhat test
 
 ## Wave Milestones
 
-Authoritative narrative (current vs planned) lives in [`WAVE_UPDATES_SUMMARY.md`](./WAVE_UPDATES_SUMMARY.md). **Release position: Wave 2** — core oracle and access layer are shipped; live-testnet continuity and keeper-driven closures are tracked as Waves 3–5.
+Wave status and live-testnet checklist: [`WAVE_UPDATES_SUMMARY.md`](./WAVE_UPDATES_SUMMARY.md). **Buildathon:** Waves 1–2 live on Arbitrum Sepolia; Waves 3–5 in code + tests — record `wave4:live` txs per [`DEMO.md`](./DEMO.md). Judging map: [`BUILDATHON_JUDGING.md`](./BUILDATHON_JUDGING.md).
 
 | Wave | Deliverable | Status | Grant Target |
 |------|-------------|--------|------|
 | **1** | `FHEOracleBridge` (per network variant), encrypted `submitPrice`, opaque storage, feeds/TTL | ✅ Complete | $3,000 |
-| **2** | `AccessRegistry`, whitelisted consumer pull, staleness, `MockConsumer*` patterns, integrator-facing demo | 🔄 **Current** | $5,000 |
-| **3** | Continuous **live testnet** multi-feeder quorum + encrypted median ops (beyond local tests) | 📋 Planned | $12,000 |
-| **4** | Always-on **liquidation keeper** + E2E CoFHE liquidation runbook on testnet | 📋 Planned | $14,000 |
-| **5** | Threshold **alert** keeper E2E, multi-asset ops runbooks, production-hardening checklist | 📋 Planned | $16,000 |
+| **2** | `AccessRegistry`, whitelisted consumer pull, staleness, `MockConsumer*` patterns, integrator-facing demo | ✅ Complete (live dashboard) | $5,000 |
+| **3** | Multi-feeder quorum + encrypted median | ✅ Code · 🔄 live `wave3:quorum` | $12,000 |
+| **4** | Liquidation keeper + CoFHE E2E | ✅ Code · 🔄 record `wave4:live` | $14,000 |
+| **5** | Threshold alerts + ops runbooks | ✅ Code · 🔄 optional `wave5:live` | $16,000 |
 
 ---
 
@@ -587,7 +588,7 @@ Authoritative narrative (current vs planned) lives in [`WAVE_UPDATES_SUMMARY.md`
 
 ### What Was Built
 
-The repository implements the **FHE Oracle Bridge** stack end-to-end in code (oracle variants, registry, consumers, liquidator, threshold alerts, feeders, keepers, frontend, tests). **Product milestone:** we are executing **Wave 2** now — closing a **canonical live CoFHE testnet** story for whitelisted consumers and clear boundary documentation — while **Waves 3–5** track **continuous live** multi-feeder median, keeper-finalized liquidation, and alert pipelines (see [`WAVE_UPDATES_SUMMARY.md`](./WAVE_UPDATES_SUMMARY.md)).
+The repository implements the **FHE Oracle Bridge** stack end-to-end (oracle, registry, consumers, liquidator, threshold alerts, feeders, keepers, frontend, **36 tests**). **Live on Arbitrum Sepolia:** dashboard + deployed contracts. **Before judging:** record Wave 4 liquidation txs ([`DEMO.md`](./DEMO.md), [`BUILDATHON_JUDGING.md`](./BUILDATHON_JUDGING.md)).
 
 ### Key Deliverables
 
@@ -617,7 +618,7 @@ The bullets below describe **what is in the repository**; **wave completion** fo
 **4. Multi-Asset Support & Documentation (Wave 5)**
 - Support for multiple independent feeds (ETH/USD, BTC/USD, extensible)
 - Comprehensive integration guide for DeFi protocols
-- 25 passing tests covering all edge cases
+- 36 passing tests covering all edge cases
 - Gas profiling: ~80k gas for single-feeder submission, ~60k for liquidation
 - Production-ready deployment scripts for Hardhat, Helium, and Arbitrum Sepolia
 
@@ -643,7 +644,7 @@ This is fundamentally different from existing oracles:
 
 ### Testing & Validation
 
-**Test Coverage**: 25 tests across 5 waves
+**Test Coverage**: 36 tests across 5 waves
 - Wave 1: Encrypted submission, unauthorized rejection, duplicate prevention
 - Wave 2: Whitelist enforcement, staleness guard, access revocation
 - Wave 3: Multi-feeder quorum, median correctness, staking/slashing
@@ -762,7 +763,7 @@ fhe-oracle-bridge/
 - **GitHub Repository**: [Your repo URL here]
 - **Live Demo**: [Frontend URL if deployed]
 - **Documentation**: See README.md sections above
-- **Test Results**: Run `npx hardhat test` (25 passing)
+- **Test Results**: Run `npx hardhat test` (36 passing)
 - **Demo Script**: Run `npx hardhat run scripts/demoFlow.js`
 
 ---
@@ -789,7 +790,7 @@ fhe-oracle-bridge/
 │   ├── demoFlow.js                # Automated judge demo sequence
 │   └── submitPrice.js             # Manual feeder price submission
 ├── test/
-│   └── FHEOracleBridge.test.js    # 25 tests across all 5 waves
+│   └── FHEOracleBridge.test.js    # 36 tests across all 5 waves
 ├── hardhat.config.js              # Hardhat + CoFHE plugin config
 ├── .env.example                   # Environment variable template
 └── package.json
