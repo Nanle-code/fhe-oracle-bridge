@@ -303,12 +303,20 @@ npm run spin:stop
 
 Optional: `npm run wave3:quorum` (needs `FEEDER2_PRIVATE_KEY`), `npm run wave5:live` (alerts).
 
-### Dashboard
+### Dashboard (for judges)
 
-- **Hosted:** https://fhe-oracle-bridge-demo.surge.sh/
+**Live URL:** https://fhe-oracle-bridge-demo.surge.sh/
+
+1. Open the link (no install required).
+2. **Connect wallet** on Arbitrum Sepolia (MetaMask or similar).
+3. Click **refresh** — feeds show round/age only (no plaintext price by design).
+4. Use sidebar: **Price feeds**, **Event log**, **Consumers**.
+5. Compare **privacy proof** panel (Chainlink vs FHE).
+
+Republish after frontend changes: `npm run deploy:frontend:surge`
+
 - **Local:** `npm run frontend` → http://127.0.0.1:8765/
-- **Republish:** `npm run deploy:frontend:surge`
-- **GitHub Pages:** enable [`.github/workflows/deploy-frontend-pages.yml`](./.github/workflows/deploy-frontend-pages.yml)
+- **GitHub Pages (backup):** push to `master` with Pages enabled, or run workflow [deploy-frontend-pages.yml](./.github/workflows/deploy-frontend-pages.yml)
 
 ### Recorded demo transactions
 

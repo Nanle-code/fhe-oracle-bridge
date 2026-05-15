@@ -777,6 +777,30 @@
   .ops-health-val.ok { color: var(--green); }
   .ops-health-val.warn { color: var(--amber); }
   .ops-health-val.err { color: var(--red); }
+
+  .judge-guide {
+    margin-bottom: 16px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(124, 111, 247, 0.35);
+    background: rgba(124, 111, 247, 0.08);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .judge-guide h3 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--purple2);
+    letter-spacing: 0.02em;
+  }
+  .judge-guide ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: var(--text);
+  }
+  .judge-guide li { margin-bottom: 4px; }
+  .judge-guide a { color: var(--purple2); }
 </style>
 </head>
 <body>
@@ -850,6 +874,17 @@
           <div class="section-sub">System overview — metadata only (no plaintext prices)</div>
         </div>
         <button class="btn" onclick="openConfig()">config</button>
+      </div>
+
+      <div class="judge-guide">
+        <h3>For judges — 3-minute walkthrough</h3>
+        <ol>
+          <li><strong>Connect wallet</strong> (top right) on Arbitrum Sepolia — switch network if prompted.</li>
+          <li>Click <strong>refresh</strong> — see feed round/age below (no plaintext USD price is shown by design).</li>
+          <li>Read <strong>privacy proof</strong> — Chainlink-style leak vs encrypted handles only.</li>
+          <li>Open <strong>Price feeds</strong> and <strong>Event log</strong> in the sidebar for live on-chain activity.</li>
+          <li>Verify on <a id="judge-arbiscan" href="https://sepolia.arbiscan.io" target="_blank" rel="noopener">Arbiscan</a>: oracle contract has no public price field; liquidation events show booleans, not spot USD.</li>
+        </ol>
       </div>
 
       <div class="privacy-bar">
