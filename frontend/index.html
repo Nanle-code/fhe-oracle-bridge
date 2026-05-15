@@ -755,6 +755,28 @@
   .demo-banner-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .demo-banner a { color: var(--purple2); text-decoration: none; }
   .demo-banner a:hover { text-decoration: underline; }
+
+  .ops-health {
+    margin: 0 32px 0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--bg2);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .ops-health.ok { border-color: rgba(34, 197, 94, 0.35); }
+  .ops-health.warn { border-color: rgba(245, 158, 11, 0.45); }
+  .ops-health.err { border-color: rgba(239, 68, 68, 0.45); }
+  .ops-health-title { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .ops-health-val { color: var(--text); }
+  .ops-health-val.ok { color: var(--green); }
+  .ops-health-val.warn { color: var(--amber); }
+  .ops-health-val.err { color: var(--red); }
 </style>
 </head>
 <body>
@@ -780,6 +802,15 @@
     <button class="btn primary" onclick="refreshData()">refresh</button>
   </div>
 </header>
+
+<div class="ops-health ok" id="ops-health" role="status" aria-live="polite">
+  <span class="ops-health-title">Testnet ops</span>
+  <span>Feeds: <span class="ops-health-val ok" id="ops-feeds-summary">—</span></span>
+  <span>Block: <span class="ops-health-val" id="ops-block">—</span></span>
+  <span>RPC: <span class="ops-health-val" id="ops-rpc-ok">—</span></span>
+  <span>Updated: <span class="ops-health-val" id="ops-last-refresh">—</span></span>
+  <span>Run locally: <span class="ops-health-val" style="color:var(--purple2)">npm run spin</span></span>
+</div>
 
 <div class="layout">
   <aside>
@@ -1164,11 +1195,11 @@ const DEFAULT_CFG = {
     "https://rpc.ankr.com/arbitrum_sepolia",
   ],
   rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc",
-  registry: "0x6Bf530a2CDbCE59be2c106F1B5C43BbEc562A7E1",
-  oracle: "0x030815AF032e051346Ec9dD575D781BB52e44B7F",
-  mockConsumer: "0x342e8E3504FbA72A1515C18D4dd67A60B10Ab490",
-  liquidator: "0x418782953085Fc72441E542875E3A25A9Abb74DE",
-  thresholdAlerts: "0xf3CF5c89042e2eFE3986e37BbE02228DCDe56B76",
+  registry: "0x3b01F41557C08587c83c1EcA40ef93bb6829D223",
+  oracle: "0x4c1A39704D65992464C4BE356c1A0BA001526dC3",
+  mockConsumer: "0x2B826A58AB77E474c2A3a6C9B8cc521F33AA3d8c",
+  liquidator: "0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff",
+  thresholdAlerts: "0x80886CCF7253337E1ABe911CD36f1F7BAAdB1932",
   repoUrl: "https://github.com/Nanle-code/fhe-oracle-bridge",
   publicDemoUrl: "https://fhe-oracle-bridge-demo.surge.sh/",
 };
@@ -1490,6 +1521,37 @@ function setFreshness(ageEl, pillEl, lastUpdated, ttl) {
   }
 }
 
+function updateOpsHealthBanner({ feed1, feed2, ethStale, btcStale, blockNumber }) {
+  const banner = document.getElementById("ops-health");
+  const summary = document.getElementById("ops-feeds-summary");
+  const blockEl = document.getElementById("ops-block");
+  const rpcEl = document.getElementById("ops-rpc-ok");
+  const refreshEl = document.getElementById("ops-last-refresh");
+  if (!banner || !summary) return;
+
+  const freshCount = (ethStale ? 0 : 1) + (btcStale ? 0 : 1);
+  const never =
+    feed1.lastUpdated <= 0n && feed2.lastUpdated <= 0n;
+  let overall = "ok";
+  if (never) overall = "warn";
+  else if (ethStale || btcStale) overall = "warn";
+
+  banner.className = "ops-health " + overall;
+  summary.className = "ops-health-val " + overall;
+  summary.textContent = never
+    ? "no aggregate yet"
+    : `${freshCount}/2 fresh · ETH r${feed1.roundId} · BTC r${feed2.roundId}`;
+
+  if (blockEl) blockEl.textContent = String(blockNumber ?? "—");
+  if (rpcEl) {
+    rpcEl.textContent = "ok";
+    rpcEl.className = "ops-health-val ok";
+  }
+  if (refreshEl) {
+    refreshEl.textContent = new Date().toLocaleTimeString();
+  }
+}
+
 function flashRound(elId, newRound, prev) {
   if (prev < 0 || newRound <= prev) return;
   const el = document.getElementById(elId);
@@ -1524,15 +1586,107 @@ function wireOracleEvents(oracle) {
   }
   oracleWiredKey = key;
   evtOracle = oracle;
+  
   oracle.on("FeedUpdated", (feedId, roundId, feederCount) => {
+    const feedType = feedId.toString() === "1" ? "eth" : "btc";
     appendLog("OK", `FeedUpdated · feed=${feedId} · round=${roundId} · quorum met (${feederCount} feeders) · encrypted median committed`);
+    
+    // Animate the feed card
+    animateFeedUpdate(feedType);
+    
+    // Show notification
+    showNotification(`Feed ${feedId === 1n ? 'ETH' : 'BTC'} updated to round ${roundId}`, "success");
+    
     pollLiveOnly();
   });
+  
   oracle.on("QuorumPending", (feedId, roundId, submissionCount, minFeeders) => {
-    appendLog("INFO", `QuorumPending · feed=${feedId} · round=${roundId} · ${submissionCount}/${minFeeders} feeders (aggregate not updated yet)`);
+    const progress = Math.round((submissionCount / minFeeders) * 100);
+    appendLog("INFO", `QuorumPending · feed=${feedId} · round=${roundId} · ${submissionCount}/${minFeeders} feeders (${progress}%)`);
+    
+    // Update quorum bar in real-time
+    const feedType = feedId.toString() === "1" ? "eth" : "btc";
+    const barEl = document.getElementById(`${feedType}-quorum-bar`);
+    const textEl = document.getElementById(`${feedType}-quorum-text`);
+    if (barEl && textEl) {
+      applyQuorumBar(textEl, barEl, submissionCount, minFeeders);
+    }
+    
     pollLiveOnly();
+  });
+  
+  oracle.on("PriceSubmitted", (feedId, feeder, roundId) => {
+    const feedType = feedId.toString() === "1" ? "ETH" : "BTC";
+    appendLog("INFO", `PriceSubmitted · ${feedType} · feeder=${shortAddr(feeder)} · round=${roundId}`);
+    
+    // Brief animation on submission
+    const feedTypeLower = feedId.toString() === "1" ? "eth" : "btc";
+    const card = document.querySelector(`.feed-card.${feedTypeLower}`);
+    if (card) {
+      card.style.transition = "background 0.2s ease";
+      card.style.background = "rgba(124,111,247,0.05)";
+      setTimeout(() => {
+        card.style.background = "";
+      }, 200);
+    }
   });
 }
+
+// Notification system
+function showNotification(message, type = "info") {
+  const notification = document.createElement("div");
+  notification.className = `notification ${type}`;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: white;
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    max-width: 300px;
+    word-wrap: break-word;
+  `;
+  
+  const colors = {
+    success: "linear-gradient(135deg, #22c55e, #16a34a)",
+    info: "linear-gradient(135deg, #3b82f6, #2563eb)",
+    warning: "linear-gradient(135deg, #f59e0b, #d97706)",
+    error: "linear-gradient(135deg, #ef4444, #dc2626)"
+  };
+  
+  notification.style.background = colors[type] || colors.info;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    notification.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 4000);
+}
+
+// Add notification animations to CSS
+const notificationStyles = document.createElement("style");
+notificationStyles.textContent = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(notificationStyles);
 
 async function pollLiveOnly() {
   try {
@@ -1661,10 +1815,165 @@ function startLivePolling() {
   livePollTimer = setInterval(() => {
     pollLiveOnly();
     demoPlainTick();
+    updateNetworkStatus();
+    checkFeedHealth();
   }, 2800);
 }
 
-async function refreshData() {
+// Enhanced network status monitoring
+async function updateNetworkStatus() {
+  try {
+    const provider = walletProvider || new ethers.JsonRpcProvider(CFG.rpcUrl);
+    const blockNumber = await provider.getBlockNumber();
+    const network = await provider.getNetwork();
+    
+    // Update network badge with block info
+    const netBadge = document.getElementById("net-badge");
+    if (netBadge) {
+      netBadge.innerHTML = `<span class="dot"></span>${network.name || 'Arbitrum Sepolia'} (Block ${blockNumber})`;
+    }
+    
+    // Check RPC latency
+    const start = Date.now();
+    await provider.getBlockNumber();
+    const latency = Date.now() - start;
+    
+    // Update connection quality indicator
+    updateConnectionQuality(latency);
+    
+  } catch (e) {
+    console.warn("Network status update failed:", e);
+    const netBadge = document.getElementById("net-badge");
+    if (netBadge) {
+      netBadge.innerHTML = `<span class="dot" style="background: var(--red)"></span>Connection issues`;
+    }
+  }
+}
+
+function updateConnectionQuality(latency) {
+  const quality = latency < 1000 ? "excellent" : latency < 3000 ? "good" : "poor";
+  const color = latency < 1000 ? "var(--teal)" : latency < 3000 ? "var(--amber)" : "var(--red)";
+  
+  // Update connection indicator in header
+  const headerRight = document.querySelector(".header-right");
+  const existingIndicator = document.getElementById("connection-quality");
+  
+  if (!existingIndicator) {
+    const indicator = document.createElement("span");
+    indicator.id = "connection-quality";
+    indicator.className = "net-badge";
+    indicator.style.cssText = `font-size: 10px; color: ${color}`;
+    headerRight.insertBefore(indicator, headerRight.querySelector("#btn-wallet"));
+  }
+  
+  document.getElementById("connection-quality").textContent = `${quality} (${latency}ms)`;
+  document.getElementById("connection-quality").style.color = color;
+}
+
+// Feed health monitoring
+async function checkFeedHealth() {
+  try {
+    const provider = walletProvider || new ethers.JsonRpcProvider(CFG.rpcUrl);
+    const oracle = new ethers.Contract(CFG.oracle, ORACLE_ABI, provider);
+    
+    // Check both feeds
+    const feed1 = await oracle.getFeedInfo(1n);
+    const feed2 = await oracle.getFeedInfo(2n);
+    
+    const now = Math.floor(Date.now() / 1000);
+    const age1 = now - Number(feed1.lastUpdated);
+    const age2 = now - Number(feed2.lastUpdated);
+    
+    // Update health indicators
+    updateFeedHealth("eth", feed1, age1);
+    updateFeedHealth("btc", feed2, age2);
+    
+    // Log health warnings
+    if (age1 > feed1.ttl) {
+      appendLog("WARN", `ETH feed stale · ${age1}s old (TTL: ${feed1.ttl}s)`);
+    }
+    if (age2 > feed2.ttl) {
+      appendLog("WARN", `BTC feed stale · ${age2}s old (TTL: ${feed2.ttl}s)`);
+    }
+    
+  } catch (e) {
+    console.warn("Feed health check failed:", e);
+  }
+}
+
+function updateFeedHealth(feedType, feed, age) {
+  const prefix = feedType === "eth" ? "eth" : "btc";
+  const statusEl = document.getElementById(`${prefix}-status`);
+  const freshEl = document.getElementById(`${prefix}-fresh-pill`);
+  
+  if (!statusEl || !freshEl) return;
+  
+  const isStale = age > feed.ttl;
+  const isWarning = age > feed.ttl * 0.8; // 80% of TTL
+  
+  if (isStale) {
+    statusEl.textContent = "stale";
+    statusEl.className = "feed-meta-val warn";
+    freshEl.textContent = "stale";
+    freshEl.className = "freshness-pill bad";
+  } else if (isWarning) {
+    statusEl.textContent = "warning";
+    statusEl.className = "feed-meta-val warn";
+    freshEl.textContent = "aging";
+    freshEl.className = "freshness-pill warn";
+  } else {
+    statusEl.textContent = "fresh";
+    statusEl.className = "feed-meta-val ok";
+    freshEl.textContent = "fresh";
+    freshEl.className = "freshness-pill ok";
+  }
+}
+
+// Enhanced activity monitoring
+function setupActivityMonitoring() {
+  // Monitor for new events more frequently
+  setInterval(async () => {
+    if (walletProvider || CFG.rpcUrl) {
+      await pollLiveOnly();
+    }
+  }, 5000); // Every 5 seconds for more responsive updates
+}
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    switch(e.key) {
+      case 'r':
+        e.preventDefault();
+        refreshData();
+        appendLog("INFO", "Manual refresh triggered");
+        break;
+      case 'l':
+        e.preventDefault();
+        clearLog();
+        appendLog("INFO", "Log cleared");
+        break;
+    }
+  }
+});
+
+// Add visual feedback for feed updates
+function animateFeedUpdate(feedType) {
+  const card = document.querySelector(`.feed-card.${feedType}`);
+  if (card) {
+    card.style.transition = "all 0.3s ease";
+    card.style.transform = "scale(1.02)";
+    card.style.boxShadow = "0 0 20px rgba(124,111,247,0.3)";
+    
+    setTimeout(() => {
+      card.style.transform = "scale(1)";
+      card.style.boxShadow = "none";
+    }, 600);
+  }
+}
+
+async function refreshData(opts = {}) {
+  const startTime = Date.now();
   try {
     // Prefer an injected wallet provider in the browser to avoid CORS issues
     // that some public RPC endpoints enforce for localhost origins.
@@ -1739,6 +2048,14 @@ async function refreshData() {
     wireOracleEvents(oracle);
     await refreshConsumerActivity(provider);
 
+    updateOpsHealthBanner({
+      feed1,
+      feed2,
+      ethStale,
+      btcStale,
+      blockNumber: await provider.getBlockNumber(),
+    });
+
     // Consumers
     const consumers = await registry.allConsumers();
     let whitelistedCount = 0;
@@ -1786,8 +2103,41 @@ async function refreshData() {
       appendLog("OK", `PriceSubmitted · feedId=${l.args.feedId} · feeder=<span class='hi'>${shortAddr(l.args.feeder)}</span> · round=${l.args.roundId}`);
     });
 
+  // Update performance metrics
+    updatePerformanceMetrics(startTime, true);
+    
   } catch (e) {
     const msg = String(e?.shortMessage || e?.message || e);
+
+    const banner = document.getElementById("ops-health");
+    const summary = document.getElementById("ops-feeds-summary");
+    const rpcEl = document.getElementById("ops-rpc-ok");
+    if (banner) banner.className = "ops-health err";
+    if (summary) {
+      summary.textContent = "refresh failed";
+      summary.className = "ops-health-val err";
+    }
+    if (rpcEl) {
+      rpcEl.textContent = "error";
+      rpcEl.className = "ops-health-val err";
+    }
+    
+    // Update performance metrics with error
+    updatePerformanceMetrics(startTime, false, msg);
+    
+    // MetaMask / ethers may throw when the injected provider changes networks mid-session.
+    // Auto-recover by dropping the wallet provider and falling back to read-only RPC.
+    if (!opts._recovered && msg.toLowerCase().includes("network changed") && walletProvider) {
+      walletProvider = null;
+      signer = null;
+      setWalletButtonDisconnected();
+      appendLog("WARN", `Wallet network changed. Falling back to read-only RPC · ${escapeHtml(CFG.rpcUrl)}`);
+      try {
+        return await refreshData({ _recovered: true });
+      } catch (_) {
+        // fall through to normal error handling below
+      }
+    }
     // Avoid spamming the log if user clicks refresh repeatedly.
     const now = Date.now();
     if (now - lastRefreshErrorAt > 1500) {
@@ -1840,6 +2190,121 @@ async function bootstrap() {
   startLivePolling();
   refreshData();
 }
+
+// Performance monitoring
+const performanceMetrics = {
+  lastRefresh: 0,
+  refreshCount: 0,
+  avgRefreshTime: 0,
+  errorCount: 0,
+  lastError: null
+};
+
+function updatePerformanceMetrics(startTime, success = true, error = null) {
+  const duration = Date.now() - startTime;
+  performanceMetrics.lastRefresh = Date.now();
+  performanceMetrics.refreshCount++;
+  
+  if (success) {
+    // Update average refresh time
+    performanceMetrics.avgRefreshTime = 
+      (performanceMetrics.avgRefreshTime * (performanceMetrics.refreshCount - 1) + duration) / performanceMetrics.refreshCount;
+  } else {
+    performanceMetrics.errorCount++;
+    performanceMetrics.lastError = { message: error, timestamp: Date.now() };
+  }
+  
+  // Update performance display
+  updatePerformanceDisplay();
+}
+
+function updatePerformanceDisplay() {
+  const perfCard = document.getElementById("performance-card");
+  if (!perfCard) return;
+  
+  const avgTime = performanceMetrics.avgRefreshTime.toFixed(0);
+  const errorRate = ((performanceMetrics.errorCount / performanceMetrics.refreshCount) * 100).toFixed(1);
+  
+  perfCard.innerHTML = `
+    <div class="stat-label">Performance</div>
+    <div class="stat-value purple">${avgTime}ms</div>
+    <div class="stat-change">Errors: ${errorRate}% · ${performanceMetrics.refreshCount} refreshes</div>
+  `;
+}
+
+// Add performance card to stats grid
+function addPerformanceCard() {
+  const statGrid = document.querySelector(".stat-grid");
+  if (statGrid && !document.getElementById("performance-card")) {
+    const perfCard = document.createElement("div");
+    perfCard.id = "performance-card";
+    perfCard.className = "stat-card";
+    statGrid.appendChild(perfCard);
+  }
+}
+
+// Enhanced initialization with auto-start
+document.addEventListener('DOMContentLoaded', async () => {
+  // Show loading state
+  appendLog("INFO", "Initializing FHE Oracle Bridge dashboard...");
+  
+  // Load configuration
+  loadConfig();
+  
+  // Add performance monitoring
+  addPerformanceCard();
+  
+  // Initial data load with performance tracking
+  const startTime = Date.now();
+  try {
+    await refreshData();
+    updatePerformanceMetrics(startTime, true);
+    appendLog("OK", "Dashboard loaded successfully");
+    showNotification("Dashboard ready", "success");
+  } catch (error) {
+    updatePerformanceMetrics(startTime, false, error.message);
+    appendLog("ERR", `Failed to load dashboard: ${error.message}`);
+    showNotification("Dashboard load failed", "error");
+  }
+  
+  // Start monitoring systems
+  startLivePolling();
+  setupActivityMonitoring();
+  
+  // Initial network status check
+  await updateNetworkStatus();
+  
+  // Show welcome message
+  setTimeout(() => {
+    showNotification("Welcome to FHE Oracle Bridge - Real-time monitoring active", "info");
+  }, 2000);
+  
+  // Auto-refresh on page visibility change
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden) {
+      appendLog("INFO", "Page became visible - refreshing data");
+      const startTime = Date.now();
+      try {
+        await refreshData();
+        updatePerformanceMetrics(startTime, true);
+      } catch (error) {
+        updatePerformanceMetrics(startTime, false, error.message);
+      }
+    }
+  });
+  
+  // Handle connection issues
+  window.addEventListener('online', () => {
+    appendLog("INFO", "Connection restored");
+    showNotification("Connection restored", "success");
+    refreshData();
+  });
+  
+  window.addEventListener('offline', () => {
+    appendLog("WARN", "Connection lost");
+    showNotification("Connection lost - some features may be limited", "warning");
+  });
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   bootstrap().catch((e) => {

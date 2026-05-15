@@ -1,6 +1,14 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@cofhe/hardhat-plugin");
+const { subtask } = require("hardhat/config");
+const { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } = require("hardhat/builtin-tasks/task-names");
 require("dotenv").config();
+
+/** Wave-4 / testnet path does not deploy ProductionOracle; skip to avoid OZ dependency. */
+subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(async (_, __, runSuper) => {
+  const paths = await runSuper();
+  return paths.filter((p) => !p.replace(/\\/g, "/").includes("/production/"));
+});
 
 /** Ordered keys: [deployer, optional feeder2, optional feeder3] for quorum demos on CoFHE. */
 function cofheAccounts() {

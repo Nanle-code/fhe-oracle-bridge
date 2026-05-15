@@ -20,11 +20,32 @@
  * Requires redeploying PrivateLiquidatorCofhe after adding request/complete liquidations.
  */
 
+const fs = require("fs");
+const path = require("path");
 const { ethers, network } = require("hardhat");
-const { createCofheClient, createCofheConfig } = require("@cofhe/sdk/node");
 const { chains } = require("@cofhe/sdk/chains");
-const { Ethers6Adapter } = require("@cofhe/sdk/adapters");
+const { connectCofhe, decryptPredicate } = require("./lib/cofheNetwork");
 require("dotenv").config();
+
+const STATE_DIR = path.join(__dirname, "state");
+
+function statePath() {
+  return path.join(STATE_DIR, `liquidation-keeper-${network.name}.json`);
+}
+
+function loadKeeperState() {
+  try {
+    const raw = fs.readFileSync(statePath(), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveKeeperState(data) {
+  fs.mkdirSync(STATE_DIR, { recursive: true });
+  fs.writeFileSync(statePath(), JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2));
+}
 
 function chainForNetwork() {
   if (network.name === "arbitrumSepolia") return chains.arbSepolia;
@@ -78,12 +99,15 @@ async function main() {
   const liquidator = await ethers.getContractAt("PrivateLiquidatorCofhe", liquidatorAddr);
   const filter = liquidator.filters.LiquidationCheckPrepared();
 
-  const cofhe = createCofheClient(createCofheConfig({ supportedChains: [chain] }));
-  const { publicClient, walletClient } = await Ethers6Adapter(ethers.provider, keeper);
-  await cofhe.connect(publicClient, walletClient);
+  const cofhe = await connectCofhe(ethers.provider, keeper, network.name);
 
+  const persisted = loadKeeperState();
   let fromBlock = Number.parseInt(process.env.KEEPER_FROM_BLOCK || "0", 10);
   if (!Number.isFinite(fromBlock) || fromBlock < 0) fromBlock = 0;
+  if (fromBlock === 0 && persisted?.lastBlock != null) {
+    fromBlock = persisted.lastBlock;
+    logHuman("Resuming from saved block", { fromBlock });
+  }
   if (fromBlock === 0) {
     const head = await ethers.provider.getBlockNumber();
     fromBlock = Math.max(0, head - 2000);
@@ -126,7 +150,7 @@ async function main() {
     });
 
     try {
-      const { decryptedValue, signature } = await cofhe.decryptForTx(ctHash).withoutPermit().execute();
+      const { decryptedValue, signature } = await decryptPredicate(cofhe, ctHash);
       const isLiquidatable = decryptedValue !== 0n;
 
       logHuman("Threshold decrypt done (predicate only — no spot price)", {
@@ -167,6 +191,7 @@ async function main() {
         if (shuttingDown) return;
       }
       fromBlock = toBlock;
+      saveKeeperState({ lastBlock: fromBlock, liquidator: liquidatorAddr, keeper: keeper.address });
     } catch (e) {
       logError("queryFilter failed", e, { fromBlock, toBlock });
     }
@@ -189,7 +214,21 @@ async function main() {
   logHuman("Liquidation keeper stopped");
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+async function runWithRestart() {
+  while (true) {
+    try {
+      await main();
+    } catch (e) {
+      logError("liquidationKeeper crashed", e);
+    }
+    logHuman("Restarting keeper in 15s…");
+    await new Promise((r) => setTimeout(r, 15000));
+  }
+}
+
+if (require.main === module) {
+  runWithRestart().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

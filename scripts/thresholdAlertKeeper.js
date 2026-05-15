@@ -8,9 +8,8 @@
  */
 
 const { ethers, network } = require("hardhat");
-const { createCofheClient, createCofheConfig } = require("@cofhe/sdk/node");
 const { chains } = require("@cofhe/sdk/chains");
-const { Ethers6Adapter } = require("@cofhe/sdk/adapters");
+const { connectCofhe, decryptPredicate } = require("./lib/cofheNetwork");
 require("dotenv").config();
 
 function chainForNetwork() {
@@ -65,9 +64,7 @@ async function main() {
   const alerts = await ethers.getContractAt("PrivateThresholdAlertsCofhe", alertsAddr);
   const filter = alerts.filters.ThresholdCheckPrepared();
 
-  const cofhe = createCofheClient(createCofheConfig({ supportedChains: [chain] }));
-  const { publicClient, walletClient } = await Ethers6Adapter(ethers.provider, keeper);
-  await cofhe.connect(publicClient, walletClient);
+  const cofhe = await connectCofhe(ethers.provider, keeper, network.name);
 
   let fromBlock = Number.parseInt(process.env.KEEPER_FROM_BLOCK || "0", 10);
   if (!Number.isFinite(fromBlock) || fromBlock < 0) fromBlock = 0;
@@ -101,7 +98,7 @@ async function main() {
     logHuman("ThresholdCheckPrepared", { subId: subId.toString(), ctHash: ctHash.toString() });
 
     try {
-      const { decryptedValue, signature } = await cofhe.decryptForTx(ctHash).withoutPermit().execute();
+      const { decryptedValue, signature } = await decryptPredicate(cofhe, ctHash);
       const triggered = decryptedValue !== 0n;
 
       logHuman("Decrypt done (boolean only — not price or threshold level)", {
@@ -150,7 +147,21 @@ async function main() {
   logHuman("Threshold alert keeper stopped");
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+async function runWithRestart() {
+  while (true) {
+    try {
+      await main();
+    } catch (e) {
+      logError("thresholdAlertKeeper crashed", e);
+    }
+    logHuman("Restarting threshold keeper in 15s…");
+    await new Promise((r) => setTimeout(r, 15000));
+  }
+}
+
+if (require.main === module) {
+  runWithRestart().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

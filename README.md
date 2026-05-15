@@ -340,7 +340,11 @@ STEP 3  End-to-end liquidation — price drops to $2,000, position liquidated
         At no point does a plaintext price appear in any transaction.
 ```
 
-### 5. Live dashboard (shareable URL)
+### 5. Live testnet demo
+
+See **[DEMO.md](./DEMO.md)** for Arbitrum Sepolia judge runbook (`npm run demo:preflight`, `npm run wave4:live`).
+
+### 6. Live dashboard (shareable URL)
 
 The UI in [`frontend/index.html`](./frontend/index.html) reads **canonical deployment metadata** from [`frontend/config.json`](./frontend/config.json) (`chainId`, `rpcUrls`, `registry`, `oracle`, `mockConsumer`, `liquidator`, `thresholdAlerts`). That keeps the hosted app and your Arbitrum Sepolia deployment in sync: **after every redeploy**, update `config.json`, commit, and republish.
 

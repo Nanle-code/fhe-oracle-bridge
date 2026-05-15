@@ -21,6 +21,12 @@ node_modules/
 cache/
 artifacts/
 
+# Keeper block cursor (scripts/liquidationKeeper.js)
+scripts/state/
+
+# spin.sh process logs
+logs/
+
 # ── OS / editor ───────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

@@ -1,0 +1,40 @@
+# Live testnet smoke: oracle feeds fresh, RPC up, addresses in frontend/config.json valid.
+# Does not need secrets (read-only RPC). Optional: DISCORD_WEBHOOK_URL repo secret for alerts.
+name: Testnet smoke
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - "contracts/**"
+      - "scripts/**"
+      - "frontend/config.json"
+      - ".github/workflows/testnet-smoke.yml"
+      - "package.json"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Live testnet smoke (Arbitrum Sepolia)
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: npm run testnet:smoke

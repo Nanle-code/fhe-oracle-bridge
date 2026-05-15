@@ -18,6 +18,7 @@ const { createCofheClient, createCofheConfig } = require("@cofhe/sdk/node");
 const { chains } = require("@cofhe/sdk/chains");
 const { Ethers6Adapter } = require("@cofhe/sdk/adapters");
 const { Encryptable } = require("@cofhe/sdk");
+const { fetchAveragedPrices } = require("./lib/livePrices");
 require("dotenv").config();
 
 function getSubmissionMode(networkName) {
@@ -50,11 +51,19 @@ async function main() {
 
   const oracle = await ethers.getContractAt(mode.oracle, oracleAddr);
 
-  // Prices with 8 decimals (Chainlink convention)
-  const prices = [
-    { feedId: 1n, price: 3500_00000000n, label: "ETH/USD = $3,500" },
-    { feedId: 2n, price: 67000_00000000n, label: "BTC/USD = $67,000" },
-  ];
+  let prices;
+  if (mode.mode === "cofhe" && process.env.USE_DUMMY_PRICES !== "1") {
+    const snap = await fetchAveragedPrices();
+    prices = [
+      { feedId: 1n, price: snap.ethUint, label: `ETH/USD live $${snap.ethUsd.toFixed(2)} (${snap.sources.join("+")})` },
+      { feedId: 2n, price: snap.btcUint, label: `BTC/USD live $${snap.btcUsd.toFixed(2)} (${snap.sources.join("+")})` },
+    ];
+  } else {
+    prices = [
+      { feedId: 1n, price: 3500_00000000n, label: "ETH/USD = $3,500 (dummy — local only or USE_DUMMY_PRICES=1)" },
+      { feedId: 2n, price: 67000_00000000n, label: "BTC/USD = $67,000 (dummy)" },
+    ];
+  }
 
   console.log(`\n=== Submitting prices (${mode.mode}) ===\n`);
 

@@ -8,27 +8,12 @@
  */
 
 const { ethers, network } = require("hardhat");
-const { createCofheClient, createCofheConfig } = require("@cofhe/sdk/node");
-const { chains } = require("@cofhe/sdk/chains");
-const { Ethers6Adapter } = require("@cofhe/sdk/adapters");
-const { Encryptable } = require("@cofhe/sdk");
+const { fetchAveragedPrices, usdToUint8Decimals } = require("./lib/livePrices");
+const { connectCofhe, encryptUint128, chainForNetwork } = require("./lib/cofheNetwork");
 require("dotenv").config();
 
-function chainForNetwork() {
-  if (network.name === "arbitrumSepolia") return chains.arbSepolia;
-  if (network.name === "sepolia") return chains.sepolia;
-  if (network.name === "baseSepolia") return chains.baseSepolia;
-  return null;
-}
-
-function usdToUint8Decimals(usd) {
-  const scaled = Math.round(Number(usd) * 1e8);
-  if (!Number.isFinite(scaled)) throw new Error("Invalid THRESHOLD_USD");
-  return BigInt(scaled);
-}
-
 async function main() {
-  const chain = chainForNetwork();
+  const chain = chainForNetwork(network.name);
   if (!chain) {
     console.error("Use arbitrumSepolia, sepolia, or baseSepolia");
     process.exit(1);
@@ -43,7 +28,14 @@ async function main() {
   const feedId = BigInt(process.env.FEED_ID || "1");
   const modeStr = (process.env.MODE || "Below").toLowerCase();
   const mode = modeStr === "above" ? 1 : 0;
-  const thresholdUsd = process.env.THRESHOLD_USD || "2000";
+  let thresholdUsd = process.env.THRESHOLD_USD;
+  if (!thresholdUsd) {
+    const snap = await fetchAveragedPrices();
+    const spot = feedId === 2n ? snap.btcUsd : snap.ethUsd;
+    const bps = Number.parseInt(process.env.THRESHOLD_PREMIUM_BPS || "500", 10);
+    thresholdUsd = String(spot * (1 + bps / 10000));
+    console.log(`THRESHOLD_USD from live spot: $${Number(thresholdUsd).toFixed(2)}`);
+  }
   const priceUint = usdToUint8Decimals(thresholdUsd);
 
   const signers = await ethers.getSigners();
@@ -51,17 +43,8 @@ async function main() {
 
   const alerts = await ethers.getContractAt("PrivateThresholdAlertsCofhe", alertsAddr);
 
-  const cofhe = createCofheClient(createCofheConfig({ supportedChains: [chain] }));
-  const { publicClient, walletClient } = await Ethers6Adapter(ethers.provider, subscriber);
-  await cofhe.connect(publicClient, walletClient);
-
-  const [enc] = await cofhe.encryptInputs([Encryptable.uint128(priceUint)]).execute();
-  const payload = {
-    ctHash: enc.ctHash,
-    securityZone: enc.securityZone,
-    utype: enc.utype,
-    signature: enc.signature,
-  };
+  const cofhe = await connectCofhe(ethers.provider, subscriber, network.name);
+  const payload = await encryptUint128(cofhe, priceUint);
 
   const tx = await alerts.connect(subscriber).subscribe(feedId, payload, mode);
   const receipt = await tx.wait();
