@@ -9,10 +9,12 @@ Built for the **Privacy-by-Design dApp Buildathon** on Fhenix.
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://soliditylang.org)
 [![Fhenix](https://img.shields.io/badge/Network-Fhenix%20CoFHE-purple.svg)](https://fhenix.io)
 [![Tests](https://img.shields.io/badge/Tests-36%20passing-green.svg)](#testing)
+[![Wave 4](https://img.shields.io/badge/Wave%204-Private%20liquidation-9d98fa.svg)](#wave-4--private-liquidation)
 
 | | |
 |---|---|
-| **Live dashboard** | https://fhe-oracle-bridge-demo.surge.sh/ |
+| **Live dashboard (judges)** | https://fhe-oracle-bridge-demo.surge.sh/ |
+| **Wave 4 liquidator (CoFHE)** | [`0x5d9D…f3ff`](#live-deployment-arbitrum-sepolia) · [Arbiscan](https://sepolia.arbiscan.io/address/0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff) |
 | **Repository** | https://github.com/Nanle-code/fhe-oracle-bridge |
 | **Network** | Arbitrum Sepolia (`421614`) |
 
@@ -21,14 +23,14 @@ Built for the **Privacy-by-Design dApp Buildathon** on Fhenix.
 ## Table of contents
 
 1. [Overview](#overview)
-2. [The problem](#the-problem)
-3. [Solution & privacy boundary](#solution--privacy-boundary)
-4. [Architecture](#architecture)
-5. [Core innovation: encrypted median](#core-innovation-encrypted-median)
-6. [Live deployment](#live-deployment-arbitrum-sepolia)
-7. [Buildathon judging criteria](#buildathon-judging-criteria)
-8. [Contracts](#contracts)
-9. [CoFHE liquidation flow](#cofhe-liquidation-flow)
+2. [Wave 4 — Private liquidation](#wave-4--private-liquidation) ← **current milestone**
+3. [The problem](#the-problem)
+4. [Solution & privacy boundary](#solution--privacy-boundary)
+5. [Architecture](#architecture)
+6. [Core innovation: encrypted median](#core-innovation-encrypted-median)
+7. [Live deployment](#live-deployment-arbitrum-sepolia)
+8. [Buildathon judging criteria](#buildathon-judging-criteria)
+9. [Contracts](#contracts)
 10. [Quick start](#quick-start)
 11. [Live testnet demo](#live-testnet-demo)
 12. [Integration guide](#integration-guide)
@@ -59,6 +61,65 @@ Built for the **Privacy-by-Design dApp Buildathon** on Fhenix.
 **Non-goals (v1):** general arbitrary-data oracle; large decentralized feeder set; tokenized fee marketplace.
 
 **Repository includes:** Solidity contracts (local mock + CoFHE + Fhenix variants), feeder/keeper automation, static dashboard (`frontend/`), **36 Hardhat tests**, demo scripts.
+
+---
+
+## Wave 4 — Private liquidation
+
+> **What Wave 4 proves:** *Full liquidation cycle — encrypted check, boolean result, keeper action — price drives everything, nobody sees it.*
+
+> **In one line:** *Encrypted threshold, boolean result, keeper action — the triggering price was never seen by anyone.*
+
+Wave 4 is the **private liquidation** milestone: the protocol asks **“is this position liquidatable?”** inside FHE — not **“what is the spot price?”** — and only a **single boolean** may cross the CoFHE threshold boundary before collateral moves.
+
+### Wave 4 deliverables
+
+| # | Deliverable | Status | Where |
+|---|-------------|--------|--------|
+| 1 | **Private liquidation contracts** | ✅ | [`PrivateLiquidator.sol`](./contracts/PrivateLiquidator.sol) (local) · [`PrivateLiquidatorCofhe.sol`](./contracts/PrivateLiquidatorCofhe.sol) (live) |
+| 2 | **Keeper** — watch event, decrypt bool, complete liquidation | ✅ | [`scripts/liquidationKeeper.js`](./scripts/liquidationKeeper.js) |
+| 3 | **Demo** — full cycle, no plaintext price in any step | ✅ local · 🔄 testnet txs | [`scripts/demoFlow.js`](./scripts/demoFlow.js) · [`scripts/wave4LiveE2E.js`](./scripts/wave4LiveE2E.js) |
+| 4 | **Hosted dashboard for judges** | ✅ | https://fhe-oracle-bridge-demo.surge.sh/ |
+| 5 | **Reproducible testnet runbook** | ✅ | [Live testnet demo](#live-testnet-demo) below |
+
+### Wave 4 flow (CoFHE — Arbitrum Sepolia)
+
+```
+openPosition(encThreshold)     →  threshold stored as euint128
+requestLiquidationCheck(id)    →  FHE.gt(threshold, encryptedSpot) → LiquidationCheckPrepared(ctHash)
+keeper: decryptForTx(ctHash)   →  learns ONLY isLiquidatable (not USD)
+completeLiquidation(id, bool)  →  if true: PositionLiquidated + collateral to keeper
+```
+
+**Contracts (live):** `PrivateLiquidator` → `0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff` ([Arbiscan](https://sepolia.arbiscan.io/address/0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff))
+
+### Review Wave 4 in 5 minutes (judges)
+
+| Step | Action |
+|------|--------|
+| 1 | Open **https://fhe-oracle-bridge-demo.surge.sh/** — on-page **“For judges”** walkthrough |
+| 2 | Connect wallet on **Arbitrum Sepolia** → click **refresh** (feeds show round/age, not plaintext USD) |
+| 3 | Read **privacy proof** (Chainlink leak vs FHE handles) · sidebar **Event log** |
+| 4 | Arbiscan: [liquidator](https://sepolia.arbiscan.io/address/0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff) · [oracle](https://sepolia.arbiscan.io/address/0x4c1A39704D65992464C4BE356c1A0BA001526dC3) — no public price field |
+| 5 | Optional local proof: `npx hardhat run scripts/demoFlow.js --network hardhat` |
+
+### Run Wave 4 yourself (operators)
+
+```bash
+npm run demo:preflight          # RPC + CoFHE + feed health
+npm run wave4:live              # full E2E: spot → open → crash → liquidate
+# or: npm run wave4:live:wait   # wait for CoFHE, then E2E
+```
+
+Split steps: [`wave4:open`](#npm-scripts) → `POSITION_ID=N npm run wave4:finish` · Always-on: `npm run spin` (feeder + **liquidation keeper** + frontend).
+
+**Recorded Wave 4 txs** (paste after a successful live run):
+
+| Event | Tx hash |
+|-------|---------|
+| `PositionOpened` | _(optional)_ |
+| `LiquidationCheckPrepared` | _(optional)_ |
+| `PositionLiquidated` / `completeTx` | _(paste from `npm run wave4:live`)_ |
 
 ---
 
@@ -180,14 +241,9 @@ After redeploy: update `frontend/config.json`, `.env`, and republish dashboard (
 | **Technical execution** | 36 tests, deployed CoFHE contracts, spin/keepers/smoke CI |
 | **Market potential** | MEV / whale hunting / institutional privacy; lending & perps as integrators |
 
-**5-minute judge path:**
+**5-minute judge path:** see [Wave 4 — Review in 5 minutes](#review-wave-4-in-5-minutes-judges).
 
-1. Open live dashboard → connect wallet → refresh feeds (metadata only, no plaintext price).
-2. Arbiscan → oracle contract → no public `latestAnswer`-style field.
-3. Local: `npx hardhat run scripts/demoFlow.js --network hardhat`
-4. Live: `npm run wave4:live` → `PositionOpened` → `LiquidationCheckPrepared` → `PositionLiquidated`
-
-**Pitch:** *FHE Oracle Bridge lets DeFi act on markets without broadcasting every tick to MEV bots — encrypted ingest, encrypted median, boolean-only liquidations on CoFHE.*
+**Pitch:** *FHE Oracle Bridge lets DeFi act on markets without broadcasting every tick to MEV bots — encrypted ingest, encrypted median, boolean-only liquidations on CoFHE ([Wave 4](#wave-4--private-liquidation)).*
 
 ---
 
@@ -216,25 +272,9 @@ Non-whitelisted `getEncryptedPrice` → `revert("Oracle: consumer not whiteliste
 
 `isPriceAbove`, `isPriceBelow`, `isWithinBand` — encrypted comparisons; local mock uses sync `FHE.decrypt`; CoFHE uses async patterns.
 
-### `PrivateLiquidator*` — private liquidation
+### `PrivateLiquidator*` — private liquidation (Wave 4)
 
-Positions store **encrypted** liquidation thresholds. On CoFHE: `requestLiquidationCheck` → keeper `completeLiquidation` (see below).
-
----
-
-## CoFHE liquidation flow
-
-On **Arbitrum Sepolia / Base Sepolia** (`PrivateLiquidatorCofhe`):
-
-```
-1. openPosition(feedId, inEuint128 encLiqPrice) + collateral
-2. requestLiquidationCheck(positionId)
-   → emits LiquidationCheckPrepared(positionId, ctHash, ...)
-3. Keeper: cofhe.decryptForTx(ctHash) → learns ONLY isLiquidatable
-4. completeLiquidation(positionId, bool, proof) → payout if true
-```
-
-Comparison: `FHE.gt(encLiquidationPrice, encryptedSpot)` — both stay ciphertext until step 3–4 reveal **bool only**.
+Positions store **encrypted** liquidation thresholds. CoFHE path: `requestLiquidationCheck` → keeper `completeLiquidation`. Full flow: [Wave 4 — Private liquidation](#wave-4--private-liquidation).
 
 ---
 
@@ -248,44 +288,36 @@ cp .env.example .env   # add PRIVATE_KEY, contract addresses after deploy
 ```
 
 ```bash
-npx hardhat test                                    # 36 passing
-npx hardhat run scripts/demoFlow.js --network hardhat   # judge narrative (local)
-npm run frontend                                    # local dashboard
+npx hardhat test                                        # 36 passing
+npx hardhat run scripts/demoFlow.js --network hardhat   # Wave 4 judge demo (local)
+npm run wave4:live                                      # Wave 4 E2E on Arbitrum Sepolia
+npm run frontend                                        # local dashboard
 ```
 
 ---
 
 ## Live testnet demo
 
+> **Wave 4 operators:** start with [Wave 4 — Run yourself](#run-wave-4-yourself-operators). Judges: [Wave 4 — Review in 5 minutes](#review-wave-4-in-5-minutes-judges).
+
 ### Prerequisites
 
-`.env` must include `PRIVATE_KEY`, `FHE_ORACLE_BRIDGE`, `PRIVATE_LIQUIDATOR` (match `frontend/config.json`). Wallet needs Arbitrum Sepolia ETH (~0.02+).
+`.env`: `PRIVATE_KEY`, `FHE_ORACLE_BRIDGE`, `PRIVATE_LIQUIDATOR` (must match [`frontend/config.json`](./frontend/config.json)). Arbitrum Sepolia ETH (~0.02+).
 
-### Health check
-
-```bash
-npm run demo:preflight
-npm run testnet:health
-npm run testnet:smoke
-```
-
-If CoFHE is flaky:
+### Health & Wave 4 E2E
 
 ```bash
-npm run cofhe:wait
-npm run wave4:live:wait    # wait for CoFHE, then full E2E
+npm run demo:preflight       # RPC, feeds, CoFHE endpoints
+npm run cofhe:wait           # if ZK_VERIFY_FAILED / timeout
+npm run wave4:live           # full liquidation cycle on testnet
+npm run wave4:live:wait      # wait for CoFHE, then wave4:live
 ```
 
-### Full Wave 4 E2E (liquidation)
+Optional env: `CRASH_BPS=1500` `LIQ_PREMIUM_BPS=500` `COLLATERAL_ETH=0.005` `SKIP_INITIAL_SUBMIT=1`
 
-```bash
-npm run wave4:live
-# optional: CRASH_BPS=1500 LIQ_PREMIUM_BPS=500 COLLATERAL_ETH=0.005
-```
+**Success:** `success: true` + `completeTx`. On Arbiscan: `PositionOpened` → `LiquidationCheckPrepared` → `PositionLiquidated`.
 
-Success: `success: true` and `completeTx` hash. Arbiscan: `PositionOpened` → `LiquidationCheckPrepared` → `PositionLiquidated`.
-
-### Split steps
+### Wave 4 split steps
 
 ```bash
 npm run submit:live:arbitrum-sepolia
@@ -293,36 +325,23 @@ npm run wave4:open
 POSITION_ID=1 npm run wave4:finish
 ```
 
-### Always-on stack (demo day)
+### Always-on stack (feeds + Wave 4 keeper)
 
 ```bash
-npm run spin          # feeder + liquidation keeper + threshold keeper + frontend
+npm run spin          # feeder + liquidation-keeper + frontend
 npm run spin:logs
 npm run spin:stop
 ```
 
-Optional: `npm run wave3:quorum` (needs `FEEDER2_PRIVATE_KEY`), `npm run wave5:live` (alerts).
+### Dashboard & frontend deploy
 
-### Dashboard (for judges)
+| | |
+|---|---|
+| **Judges** | https://fhe-oracle-bridge-demo.surge.sh/ |
+| **Republish** | `npm run deploy:frontend:surge` |
+| **Local** | `npm run frontend` → http://127.0.0.1:8765/ |
 
-**Live URL:** https://fhe-oracle-bridge-demo.surge.sh/
-
-1. Open the link (no install required).
-2. **Connect wallet** on Arbitrum Sepolia (MetaMask or similar).
-3. Click **refresh** — feeds show round/age only (no plaintext price by design).
-4. Use sidebar: **Price feeds**, **Event log**, **Consumers**.
-5. Compare **privacy proof** panel (Chainlink vs FHE).
-
-Republish after frontend changes: `npm run deploy:frontend:surge`
-
-- **Local:** `npm run frontend` → http://127.0.0.1:8765/
-- **GitHub Pages (backup):** push to `master` with Pages enabled, or run workflow [deploy-frontend-pages.yml](./.github/workflows/deploy-frontend-pages.yml)
-
-### Recorded demo transactions
-
-| Step | Tx hash | Notes |
-|------|---------|-------|
-| Wave 4 E2E | _(paste after `npm run wave4:live`)_ | `completeTx` |
+Record txs in [Wave 4 — Recorded txs](#recorded-wave-4-txs-paste-after-a-successful-live-run).
 
 ---
 
@@ -341,14 +360,14 @@ import "@fhenixprotocol/cofhe-contracts/FHE.sol";
 registry.whitelist(address(myProtocol), "MyProtocol v1");
 ```
 
-### Step 3 — CoFHE (production testnet)
+### Step 3 — CoFHE (production testnet / Wave 4)
 
-Use **async** liquidation pattern (not sync `FHE.decrypt` in one tx):
+Use the **async** Wave 4 pattern ([flow](#wave-4-flow-cofhe--arbitrum-sepolia)) — not sync `FHE.decrypt` in one tx:
 
 ```solidity
 liquidator.openPosition(feedId, encLiqPrice, { value: collateral });
 liquidator.requestLiquidationCheck(positionId);
-// Off-chain keeper: decryptForTx(ctHash) → completeLiquidation(...)
+// Keeper: decryptForTx(ctHash) → completeLiquidation(positionId, isLiquidatable, proof)
 ```
 
 ### Step 3 — Hardhat local (mock)
@@ -382,13 +401,13 @@ function submitPrice(uint256 feedId, inEuint128 calldata encPrice);
 
 ## Keeper & feeder operations
 
-### Liquidation keeper
+### Liquidation keeper (Wave 4)
 
-Watches `LiquidationCheckPrepared`, runs `decryptForTx(ctHash).withoutPermit()`, calls `completeLiquidation`.
+Watches `LiquidationCheckPrepared`, runs `decryptForTx(ctHash).withoutPermit()`, calls `completeLiquidation`. See [Wave 4 deliverables](#wave-4-deliverables).
 
 ```bash
 npm run keeper:arbitrum-sepolia
-# env: PRIVATE_LIQUIDATOR, KEEPER_POLL_MS=8000, KEEPER_FROM_BLOCK
+# env: PRIVATE_LIQUIDATOR=0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff, KEEPER_POLL_MS=8000
 ```
 
 ### Threshold alert keeper
@@ -451,9 +470,13 @@ PRIVATE_THRESHOLD_ALERTS=0x...
 | Script | Purpose |
 |--------|---------|
 | `npm test` | Hardhat test suite (36 tests) |
+| **Wave 4** | |
 | `npm run demo:preflight` | Pre-demo health (RPC, feeds, CoFHE) |
-| `npm run wave4:live` | Full live liquidation E2E |
-| `npm run wave4:live:wait` | Wait for CoFHE, then wave4 |
+| `npm run wave4:live` | **Wave 4** — full live liquidation E2E |
+| `npm run wave4:live:wait` | Wait for CoFHE, then Wave 4 E2E |
+| `npm run wave4:open` | Open position only |
+| `npm run wave4:finish` | Crash price + request + complete (`POSITION_ID=N`) |
+| `npm run demoFlow` (via hardhat) | Wave 4 narrative on local mock |
 | `npm run wave3:quorum` | Two-feeder live median |
 | `npm run wave5:live` | Threshold alert E2E |
 | `npm run spin` | Feeder + keepers + frontend |
@@ -479,7 +502,7 @@ npx hardhat test
 | 1 | Encrypted submit, feeds, opaque storage |
 | 2 | Whitelist, staleness, consumer pull |
 | 3 | Multi-feeder quorum, median, staking |
-| 4 | Liquidator open / liquidate / close |
+| 4 | **Wave 4:** `PrivateLiquidator` open / `isLiquidatable` / liquidate / keeper flow |
 | 5 | Multi-asset, gas profiling |
 
 **Gas (local, indicative):** `submitPrice` ~80–190k · `liquidate` ~60–68k
@@ -508,10 +531,12 @@ npx hardhat test
 | Wave | Focus | Code & tests | Live testnet |
 |------|--------|--------------|--------------|
 | **1** | Encrypted ingest, feeds | ✅ | ✅ Feeder |
-| **2** | Access registry, consumers, UI | ✅ | ✅ Dashboard |
-| **3** | Multi-feeder encrypted median | ✅ | 🔄 `wave3:quorum` |
-| **4** | Private liquidation + keeper | ✅ | 🔄 `wave4:live` (record txs) |
-| **5** | Threshold alerts | ✅ | 🔄 `wave5:live` optional |
+| **2** | Access registry, consumers, UI | ✅ | ✅ [Dashboard](https://fhe-oracle-bridge-demo.surge.sh/) |
+| **3** | Multi-feeder encrypted median | ✅ | 🔄 `npm run wave3:quorum` |
+| **[4](#wave-4--private-liquidation)** | **Private liquidation + keeper** | ✅ | 🔄 `npm run wave4:live` · record txs |
+| **5** | Threshold alerts | ✅ | 🔄 `npm run wave5:live` optional |
+
+**Wave 4 summary:** encrypted predicate → boolean via CoFHE → keeper completes liquidation. Nothing for MEV bots to front-run on a public price tick. Details: [Wave 4 section](#wave-4--private-liquidation).
 
 ---
 
@@ -529,7 +554,8 @@ fhe-oracle-bridge/
 ├── scripts/
 │   ├── deploy.js, demoFlow.js, feederDaemon.js
 │   ├── liquidationKeeper.js, thresholdAlertKeeper.js
-│   ├── wave3LiveQuorum.js, wave4LiveE2E.js, wave5LiveE2E.js
+│   ├── wave4LiveE2E.js, wave4FinishLiquidation.js, openPositionLive.js  # Wave 4
+│   ├── wave3LiveQuorum.js, wave5LiveE2E.js
 │   ├── spin.sh, testnetSmoke.js, lib/
 │   └── monitoring/
 ├── frontend/
