@@ -8,7 +8,7 @@
 
 ## Build With
 
-| Track | How we use it |
+| Layer | How we use it |
 |-------|----------------|
 | **[Fhenix](https://fhenix.io)** | CoFHE contracts, threshold decrypt network, `@cofhe/sdk`, `@fhenixprotocol/cofhe-contracts` |
 | **FHE** | `euint128` price storage, `FHE.gt` / `FHE.lt` / `FHE.select`, encrypted median in `MedianLibCofhe` |
@@ -35,7 +35,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Hackathon Judging Criteria](#hackathon-judging-criteria)
+- [Why FHE Oracle Bridge](#why-fhe-oracle-bridge)
 - [Problem](#problem)
 - [Solution](#solution)
 - [Core Features](#core-features)
@@ -62,8 +62,8 @@
 - [Security & Privacy Rules](#security--privacy-rules)
 - [Market Potential](#market-potential)
 - [Roadmap](#roadmap)
-- [Quality Checklist](#quality-checklist)
-- [Final Demo Flow](#final-demo-flow)
+- [Production Readiness](#production-readiness)
+- [Quick Start Walkthrough](#quick-start-walkthrough)
 - [Troubleshooting](#troubleshooting)
 - [Resources](#resources)
 - [License](#license)
@@ -93,13 +93,13 @@ FHE Oracle Bridge is infrastructure for **private market data in DeFi**. It is d
 
 ---
 
-## Hackathon Judging Criteria
+## Why FHE Oracle Bridge
 
-This section maps each Fhenix **Privacy-by-Design Buildathon** criterion to concrete evidence in this repository.
+FHE Oracle Bridge is built as **production-oriented privacy infrastructure** — not a public price ticker, but a full stack for encrypted market data, predicate consumers, and operator automation on Fhenix CoFHE.
 
-### 1. Privacy Architecture
+### Privacy by Design
 
-**Claim:** Spot prices and user thresholds never appear as plaintext on-chain. The only public outputs tied to sensitive comparisons are **booleans** after CoFHE threshold decrypt.
+Spot prices and user thresholds never appear as plaintext on-chain. The only public outputs tied to sensitive comparisons are **booleans** after CoFHE threshold decrypt.
 
 | Privacy layer | Implementation | Evidence |
 |---------------|----------------|----------|
@@ -124,11 +124,11 @@ Spot and user thresholds stay FHE ciphertext on-chain; keepers learn only `isLiq
 
 ---
 
-### 2. Innovation & Originality
+### What We Built Differently
 
-**Claim:** We are not another public index feed. We built a **predicate oracle rail** — protocols ask encrypted questions and get encrypted answers, with minimal plaintext leakage.
+We are not another public index feed. FHE Oracle Bridge is a **predicate oracle rail** — protocols ask encrypted questions and get encrypted answers, with minimal plaintext leakage.
 
-| Innovation | Why it matters |
+| Capability | Why it matters |
 |------------|----------------|
 | **On-chain encrypted median** | Multi-feeder aggregation without decrypting feeder submissions |
 | **Predicate consumers** | Liquidation & alerts use comparisons, not public price reads |
@@ -140,9 +140,9 @@ Spot and user thresholds stay FHE ciphertext on-chain; keepers learn only `isLiq
 
 ---
 
-### 3. User Experience
+### Dashboard & Developer Experience
 
-**Claim:** Judges and developers can verify privacy and liveness without reading Solidity first.
+Operators and integrators can verify privacy and liveness without reading Solidity first.
 
 | UX surface | What the user sees |
 |------------|-------------------|
@@ -157,11 +157,11 @@ Spot and user thresholds stay FHE ciphertext on-chain; keepers learn only `isLiq
 
 ---
 
-### 4. Technical Execution
+### Live on Testnet
 
-**Claim:** End-to-end system deployed on CoFHE testnet with tests, automation, and reproducible runbooks.
+The full stack runs on CoFHE testnet today — contracts deployed, automation wired, runbooks documented.
 
-| Deliverable | Status | Proof |
+| Component | Status | Reference |
 |-------------|--------|-------|
 | CoFHE contracts deployed | ✅ | [Live deployment](#live-deployment) |
 | 42 Hardhat tests | ✅ | `npm test` |
@@ -182,24 +182,6 @@ Spot and user thresholds stay FHE ciphertext on-chain; keepers learn only `isLiq
 | Private liquidation | `PositionOpened` (#3) | [`0x89d033ef…`](https://sepolia.arbiscan.io/tx/0x89d033ef02ab95168e5964f77d8bde0f280f08eb1f8f19ee2241b1111bfec49f) |
 | Private liquidation | `LiquidationCheckPrepared` | [`0xa3f207ec…`](https://sepolia.arbiscan.io/tx/0xa3f207ec707501e616967256f83b1e7bf9c4645eaddf9cf95013df726dcbc8c2) |
 | Private liquidation | `PositionLiquidated` / complete | [`0x4bebe95c…`](https://sepolia.arbiscan.io/tx/0x4bebe95c8b24f046a9ea9eed4a16725f68fcaa3ad505ca32fa3ad3efe1dadd51) |
-
----
-
-### 5. Market Potential
-
-**Claim:** Public oracle ticks are a structural MEV and compliance problem. Private predicate oracles unlock institutional and retail use cases that cannot live on transparent rails.
-
-| Segment | Pain today | FHE Oracle Bridge value |
-|---------|------------|-------------------------|
-| **Lending** | Liquidation bots hunt visible health factors | Encrypted threshold + bool-only liquidations |
-| **Perps / options** | Stop levels leak via public oracles | Private threshold alerts |
-| **Institutional DeFi** | Compliance blocks fully public price rails | Ciphertext storage + whitelist access |
-| **MEV-sensitive DAOs** | Treasury rebalancing signals front-run | No public USD tick on-chain |
-| **Fhenix ecosystem** | Needs reference oracle + consumer patterns | Deployed stack + integration guide |
-
-**Integrators:** Any whitelisted Solidity consumer on CoFHE can pull `euint128` and run native FHE ops — lending, perps, structured products, risk engines.
-
-**Business model (future):** feeder staking fees, keeper marketplace, whitelist SaaS for consumer onboarding, SLA feeds for private predicates.
 
 ---
 
@@ -314,11 +296,11 @@ flowchart TD
     D -- Yes --> F[Encrypted median finalized]
     F --> G[Whitelisted consumer pulls euint128]
     G --> H[FHE comparison in consumer contract]
-    H --> I[prepareLiquidationCheck / prepareThresholdCheck]
-    I --> J[ThresholdCheckPrepared / LiquidationCheckPrepared]
-    J --> K[Keeper: decryptForTx ctHash]
-    K --> L[Boolean only: isLiquidatable / triggered]
-    L --> M[completeLiquidation / completeThresholdAlert]
+    H --> I["prepareLiquidationCheck or prepareThresholdCheck"]
+    I --> J["ThresholdCheckPrepared or LiquidationCheckPrepared"]
+    J --> K["Keeper decryptForTx ctHash"]
+    K --> L["Boolean only isLiquidatable or triggered"]
+    L --> M["completeLiquidation or completeThresholdAlert"]
 ```
 
 ---
@@ -327,26 +309,26 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph OffChain[Off-chain]
+    subgraph OffChain["Off-chain"]
         FD[Feeder Daemon]
         LK[Liquidation Keeper]
         TK[Threshold Keeper]
-        APIs[CoinGecko + Binance]
+        APIs["CoinGecko and Binance"]
     end
 
-    subgraph OnChain[Arbitrum Sepolia — CoFHE]
+    subgraph OnChain["Arbitrum Sepolia CoFHE"]
         AR[AccessRegistry]
         OB[FHEOracleBridgeCofhe]
         PL[PrivateLiquidatorCofhe]
         PTA[PrivateThresholdAlertsCofhe]
     end
 
-    subgraph Fhenix[Fhenix CoFHE Network]
-        TN[Threshold decrypt + ZK verify]
+    subgraph Fhenix["Fhenix CoFHE Network"]
+        TN["Threshold decrypt and ZK verify"]
     end
 
-    subgraph Frontend[Frontend]
-        UI[Dashboard + Hero]
+    subgraph Frontend["Frontend"]
+        UI["Dashboard and Hero"]
     end
 
     APIs --> FD
@@ -358,8 +340,8 @@ flowchart LR
     PTA -->|ctHash| TK
     LK --> TN
     TK --> TN
-    TN -->|bool + proof| PL
-    TN -->|bool + proof| PTA
+    TN -->|bool and proof| PL
+    TN -->|bool and proof| PTA
     OB --> UI
     PL --> UI
     PTA --> UI
@@ -379,20 +361,20 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    subgraph PublicOnChain[Public on-chain]
-        M1[Feed metadata: round, TTL, description]
-        M2[Events: PriceSubmitted, FeedUpdated]
-        M3[Final bool: isLiquidatable / triggered]
+    subgraph PublicOnChain["Public on-chain"]
+        M1["Feed metadata round TTL description"]
+        M2["Events PriceSubmitted FeedUpdated"]
+        M3["Final bool isLiquidatable or triggered"]
     end
 
-    subgraph PrivateOnChain[Private on-chain — FHE ciphertext]
+    subgraph PrivateOnChain["Private on-chain FHE ciphertext"]
         P1[euint128 encryptedPrice]
         P2[euint128 encLiquidationThreshold]
         P3[euint128 encAlertThreshold]
         P4[FHE predicate ebool before decrypt]
     end
 
-    subgraph OffChainEncrypt[Off-chain encrypt boundary]
+    subgraph OffChainEncrypt["Off-chain encrypt boundary"]
         O1[Feeder sees spot before encrypt]
     end
 
@@ -509,7 +491,7 @@ sequenceDiagram
     CoFHE-->>Keeper: triggered + proof
     Keeper->>Consumer: completeThresholdAlert(bool, proof)
     Consumer-->>UI: ThresholdAlert(triggered)
-    UI-->>User: Show bool only — no USD
+    UI-->>User: Show bool only, no USD
 ```
 
 ---
@@ -527,7 +509,7 @@ flowchart TD
     G --> H[feeds feedId.encryptedPrice]
     H --> I[FHE.allow whitelisted consumers]
     I --> J[getEncryptedPrice]
-    J --> K[Consumer FHE.gt / FHE.lt]
+    J --> K["Consumer FHE.gt or FHE.lt"]
     K --> L[ebool predicate handle]
     L --> M[allowGlobal + emit Prepared event]
     M --> N[Keeper decryptForTx]
@@ -914,19 +896,33 @@ FHE Oracle Bridge follows these rules:
 
 ## Market Potential
 
+Public oracle ticks are a structural MEV and compliance problem. Private predicate oracles unlock use cases that cannot live on transparent rails.
+
+| Segment | Pain today | FHE Oracle Bridge value |
+|---------|------------|-------------------------|
+| **Lending** | Liquidation bots hunt visible health factors | Encrypted threshold + bool-only liquidations |
+| **Perps / options** | Stop levels leak via public oracles | Private threshold alerts |
+| **Institutional DeFi** | Compliance blocks fully public price rails | Ciphertext storage + whitelist access |
+| **MEV-sensitive DAOs** | Treasury rebalancing signals front-run | No public USD tick on-chain |
+| **Fhenix ecosystem** | Needs reference oracle + consumer patterns | Deployed stack + integration guide |
+
+**Integrators:** Any whitelisted Solidity consumer on CoFHE can pull `euint128` and run native FHE ops — lending, perps, structured products, risk engines.
+
+**Business model (future):** feeder staking fees, keeper marketplace, whitelist SaaS for consumer onboarding, SLA feeds for private predicates.
+
 ```mermaid
 flowchart TD
     A[FHE Oracle Bridge] --> B[Lending protocols]
-    A --> C[Perps & options]
+    A --> C[Perps and options]
     A --> D[DAO treasuries]
     A --> E[Institutional DeFi]
     A --> F[Fhenix app ecosystem]
 
     B --> G[Private liquidations]
-    C --> H[Private stop / alert levels]
+    C --> H[Private stop and alert levels]
     D --> I[Non-public risk monitoring]
     E --> J[Compliance-friendly rails]
-    F --> K[Reference oracle + consumers]
+    F --> K[Reference oracle and consumers]
 ```
 
 **Why now:** CoFHE on L2 testnets makes FHE predicates practical. Public oracle ticks remain the default — creating a clear gap for privacy-first infrastructure.
@@ -935,33 +931,31 @@ flowchart TD
 
 ## Roadmap
 
-```mermaid
-timeline
-    title FHE Oracle Bridge Milestones
+**Shipped**
 
-    section Shipped
-        Encrypted ingest + feeds
-        AccessRegistry + dashboard
-        Multi-feeder encrypted median
-        Private liquidation + keeper
-        Threshold alerts + keeper
+- Encrypted ingest and feeds
+- AccessRegistry and dashboard
+- Multi-feeder encrypted median
+- Private liquidation and keeper
+- Threshold alerts and keeper
 
-    section Next
-        Verified contracts : Arbiscan verification
-        Multi-feeder production : 3+ feeder quorum on mainnet path
-        Keeper incentives : Economic security for decrypt bots
+**Next**
 
-    section Future
-        Multisig governance : Owner → timelock
-        Cross-chain feeds : Base + Arbitrum parity
-        Integrator SDK : npm package for consumer devs
-```
+- Verified contracts on Arbiscan
+- Multi-feeder production (3+ feeder quorum)
+- Keeper incentives and economic security
+
+**Future**
+
+- Multisig governance (owner to timelock)
+- Cross-chain feeds (Base and Arbitrum parity)
+- Integrator SDK (npm package for consumer devs)
 
 ---
 
-## Quality Checklist
+## Production Readiness
 
-Submission status for the Fhenix buildathon:
+What is shipped and verified today:
 
 - [x] CoFHE contracts deployed on Arbitrum Sepolia
 - [x] Live liquidation E2E
@@ -971,11 +965,11 @@ Submission status for the Fhenix buildathon:
 - [x] Liquidation + threshold keepers
 - [x] Live dashboard (fintech hero + operational UI)
 - [x] CI: Hardhat tests + testnet smoke
-- [x] README with judging criteria mapping
+- [x] Documentation (README, integration guide, runbooks)
 - [x] `.env.example` + `npm run setup:env`
 - [ ] Demo video (optional — add link here)
 
-### Engineering checklist
+### Engineering
 
 - [x] All npm demo scripts documented
 - [x] No plaintext price in UI by design
@@ -986,21 +980,21 @@ Submission status for the Fhenix buildathon:
 
 ---
 
-## Final Demo Flow
+## Quick Start Walkthrough
 
 ```mermaid
 flowchart TD
-    A[Open live dashboard] --> B[Connect wallet — Arbitrum Sepolia]
+    A[Open live dashboard] --> B["Connect wallet on Arbitrum Sepolia"]
     B --> C[Click Refresh]
-    C --> D[See feed round + freshness — no USD]
+    C --> D["See feed round and freshness, no USD"]
     D --> E[Read privacy proof panel]
-    E --> F[Open Event log / Activity]
-    F --> G[See ThresholdCheckPrepared + ThresholdAlert]
-    G --> H[Verify on Arbiscan — no public price field]
-    H --> I[Optional: npm run wave5:live locally]
+    E --> F["Open Event log or Activity"]
+    F --> G["See ThresholdCheckPrepared and ThresholdAlert"]
+    G --> H["Verify on Arbiscan, no public price field"]
+    H --> I["Optional run wave5 live locally"]
 ```
 
-**5-minute judge path:**
+**Try it in 5 minutes:**
 
 1. https://fhe-oracle-bridge-demo.surge.sh/
 2. Connect wallet → Refresh
@@ -1031,7 +1025,6 @@ flowchart TD
 - [CoFHE Quick Start](https://cofhe-docs.fhenix.zone/fhe-library/introduction/quick-start)
 - [CoFHE Architecture](https://cofhe-docs.fhenix.zone/deep-dive/cofhe-components/overview)
 - [Awesome Fhenix](https://github.com/FhenixProtocol/awesome-fhenix)
-- [Buildathon Telegram](https://t.me/+rA9gI3AsW8c3YzIx)
 - [Fhenix Faucet](https://faucet.fhenix.zone)
 
 ---
