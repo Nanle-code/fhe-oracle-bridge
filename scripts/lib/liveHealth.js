@@ -120,6 +120,7 @@ async function checkWalletBalance(provider, address, minEth = "0.002") {
 }
 
 async function checkFrontend(url = process.env.FRONTEND_URL || "http://127.0.0.1:8765/") {
+  const strict = process.env.FRONTEND_CHECK_STRICT === "1";
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   const t0 = Date.now();
@@ -134,7 +135,11 @@ async function checkFrontend(url = process.env.FRONTEND_URL || "http://127.0.0.1
       message: res.ok ? `OK ${ms}ms` : `HTTP ${res.status}`,
     };
   } catch (e) {
-    return { status: "error", url, message: e.message };
+    return {
+      status: strict ? "error" : "warning",
+      url,
+      message: strict ? e.message : `not running (${e.message})`,
+    };
   } finally {
     clearTimeout(t);
   }

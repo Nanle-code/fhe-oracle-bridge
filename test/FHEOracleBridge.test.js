@@ -364,6 +364,100 @@ describe("FHE Oracle Bridge", function () {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // WAVE 5: Threshold alerts (local)
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("Wave 5 — PrivateThresholdAlerts", function () {
+    let alerts;
+
+    const STOP_LOSS = 3000_00000000n; // $3,000
+    const TAKE_PROFIT = 4000_00000000n; // $4,000
+
+    beforeEach(async function () {
+      const Alerts = await ethers.getContractFactory("PrivateThresholdAlerts");
+      alerts = await Alerts.deploy(await oracle.getAddress());
+      await registry.whitelist(await alerts.getAddress(), "PrivateThresholdAlerts");
+      await oracle.connect(feeder1).submitPrice(ETH_USD, ETH_PRICE);
+    });
+
+    it("creates an encrypted below-threshold alert", async function () {
+      await expect(
+        alerts.connect(consumer1).createAlert(ETH_USD, STOP_LOSS, 0) // CompareMode.Below
+      )
+        .to.emit(alerts, "AlertCreated")
+        .withArgs(1n, consumer1.address, ETH_USD, 0);
+    });
+
+    it("does not trigger below alert when price is above threshold", async function () {
+      await alerts.connect(consumer1).createAlert(ETH_USD, STOP_LOSS, 0);
+      const tx = await alerts.connect(liquidatorAddr).triggerAlertCheck(1n);
+      const receipt = await tx.wait();
+      const ev = receipt.logs
+        .map((l) => {
+          try {
+            return alerts.interface.parseLog(l);
+          } catch {
+            return null;
+          }
+        })
+        .find((p) => p && p.name === "ThresholdAlert");
+      expect(ev.args.triggered).to.equal(false);
+    });
+
+    it("triggers below alert when price drops under threshold", async function () {
+      await alerts.connect(consumer1).createAlert(ETH_USD, STOP_LOSS, 0);
+      await oracle.connect(feeder1).submitPrice(ETH_USD, LOW_PRICE);
+
+      const tx = await alerts.connect(liquidatorAddr).triggerAlertCheck(1n);
+      const receipt = await tx.wait();
+      const ev = receipt.logs
+        .map((l) => {
+          try {
+            return alerts.interface.parseLog(l);
+          } catch {
+            return null;
+          }
+        })
+        .find((p) => p && p.name === "ThresholdAlert");
+      expect(ev.args.triggered).to.equal(true);
+    });
+
+    it("triggers above alert when price rises above threshold", async function () {
+      await alerts.connect(consumer1).createAlert(ETH_USD, TAKE_PROFIT, 1); // CompareMode.Above
+      await oracle.connect(feeder1).submitPrice(ETH_USD, 4200_00000000n);
+
+      const tx = await alerts.connect(liquidatorAddr).triggerAlertCheck(1n);
+      const receipt = await tx.wait();
+      const ev = receipt.logs
+        .map((l) => {
+          try {
+            return alerts.interface.parseLog(l);
+          } catch {
+            return null;
+          }
+        })
+        .find((p) => p && p.name === "ThresholdAlert");
+      expect(ev.args.triggered).to.equal(true);
+    });
+
+    it("owner can cancel an alert", async function () {
+      await alerts.connect(consumer1).createAlert(ETH_USD, STOP_LOSS, 0);
+      await expect(alerts.connect(consumer1).cancelAlert(1n))
+        .to.emit(alerts, "AlertCancelled")
+        .withArgs(1n, consumer1.address);
+      const info = await alerts.getAlertInfo(1n);
+      expect(info.active).to.equal(false);
+    });
+
+    it("rejects alert check on cancelled alert", async function () {
+      await alerts.connect(consumer1).createAlert(ETH_USD, STOP_LOSS, 0);
+      await alerts.connect(consumer1).cancelAlert(1n);
+      await expect(alerts.connect(liquidatorAddr).triggerAlertCheck(1n)).to.be.revertedWith(
+        "Alerts: not active"
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // WAVE 5: Multi-feed + admin
   // ─────────────────────────────────────────────────────────────────────────
   describe("Wave 5 — Multi-feed & admin controls", function () {

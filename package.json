@@ -61,6 +61,7 @@
     "testnet:health": "NODE_OPTIONS='--dns-result-order=ipv4first' node scripts/testnetHealth.js",
     "testnet:health:json": "NODE_OPTIONS='--dns-result-order=ipv4first' node scripts/testnetHealth.js --json",
     "wave5:live": "NODE_OPTIONS='--dns-result-order=ipv4first' hardhat run scripts/wave5LiveE2E.js --network arbitrumSepolia",
+    "wave5:live:wait": "NODE_OPTIONS='--dns-result-order=ipv4first' node scripts/cofheWait.js && npm run wave5:live",
     "cron:smoke": "NODE_OPTIONS='--dns-result-order=ipv4first' node scripts/testnetSmoke.js",
     "setup:feeder2": "NODE_OPTIONS='--dns-result-order=ipv4first' hardhat run scripts/setupSecondFeeder.js --network arbitrumSepolia",
     "feeds:quorum": "NODE_OPTIONS='--dns-result-order=ipv4first' hardhat run scripts/createQuorumFeeds.js --network arbitrumSepolia",
@@ -71,6 +72,7 @@
     "cofhe:wait": "node scripts/cofheWait.js",
     "demo:preflight": "NODE_OPTIONS='--dns-result-order=ipv4first' node scripts/demoPreflight.js",
     "demo:preflight:strict": "NODE_OPTIONS='--dns-result-order=ipv4first' node scripts/demoPreflight.js --strict",
+    "setup:env": "node scripts/setupEnv.js",
     "wave4:live:wait": "NODE_OPTIONS='--dns-result-order=ipv4first' node scripts/cofheWait.js && npm run wave4:live"
   },
   "devDependencies": {

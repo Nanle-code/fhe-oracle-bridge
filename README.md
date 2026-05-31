@@ -1,201 +1,450 @@
 # FHE Oracle Bridge
 
-> **Privacy-preserving price oracle on [Fhenix](https://fhenix.io) CoFHE.**  
-> Prices are stored, aggregated, and consumed as **encrypted ciphertext** — never as plaintext on-chain.
+**FHE Oracle Bridge** is a privacy-preserving price oracle built on [Fhenix CoFHE](https://fhenix.io). Instead of publishing plaintext USD ticks like a traditional oracle, it stores prices as **FHE ciphertext**, aggregates them with an **on-chain encrypted median**, and lets DeFi protocols act on **encrypted predicates** — liquidations and alerts reveal **only a boolean**, never spot or threshold values.
 
-Built for the **Privacy-by-Design dApp Buildathon** on Fhenix.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://soliditylang.org)
-[![Fhenix](https://img.shields.io/badge/Network-Fhenix%20CoFHE-purple.svg)](https://fhenix.io)
-[![Tests](https://img.shields.io/badge/Tests-36%20passing-green.svg)](#testing)
-[![Wave 4](https://img.shields.io/badge/Wave%204-Private%20liquidation-9d98fa.svg)](#wave-4--private-liquidation)
-
-| | |
-|---|---|
-| **Live dashboard (judges)** | https://fhe-oracle-bridge-demo.surge.sh/ |
-| **Wave 4 liquidator (CoFHE)** | [`0x5d9D…f3ff`](#live-deployment-arbitrum-sepolia) · [Arbiscan](https://sepolia.arbiscan.io/address/0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff) |
-| **Repository** | https://github.com/Nanle-code/fhe-oracle-bridge |
-| **Network** | Arbitrum Sepolia (`421614`) |
+> FHE Oracle Bridge lets DeFi react to markets without broadcasting every price update to MEV bots.
 
 ---
 
-## Table of contents
+## Build With
 
-1. [Overview](#overview)
-2. [Wave 4 — Private liquidation](#wave-4--private-liquidation) ← **current milestone**
-3. [The problem](#the-problem)
-4. [Solution & privacy boundary](#solution--privacy-boundary)
-5. [Architecture](#architecture)
-6. [Core innovation: encrypted median](#core-innovation-encrypted-median)
-7. [Live deployment](#live-deployment-arbitrum-sepolia)
-8. [Buildathon judging criteria](#buildathon-judging-criteria)
-9. [Contracts](#contracts)
-10. [Quick start](#quick-start)
-11. [Live testnet demo](#live-testnet-demo)
-12. [Integration guide](#integration-guide)
-13. [Keeper & feeder operations](#keeper--feeder-operations)
-14. [Deployment](#deployment)
-15. [npm scripts](#npm-scripts)
-16. [Testing](#testing)
-17. [Security model](#security-model)
-18. [Wave milestones](#wave-milestones)
-19. [Project structure](#project-structure)
-20. [Troubleshooting](#troubleshooting)
-21. [Resources](#resources)
+| Track | How we use it |
+|-------|----------------|
+| **[Fhenix](https://fhenix.io)** | CoFHE contracts, threshold decrypt network, `@cofhe/sdk`, `@fhenixprotocol/cofhe-contracts` |
+| **FHE** | `euint128` price storage, `FHE.gt` / `FHE.lt` / `FHE.select`, encrypted median in `MedianLibCofhe` |
+| **Cryptography** | Client-side encryption before submit; CoFHE ZK proofs on decrypt; ACL via `FHE.allow` / `allowGlobal` |
+| **Privacy** | No plaintext oracle field on-chain; whitelist-gated reads; boolean-only boundary for liquidation & alerts |
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://soliditylang.org)
+[![Fhenix CoFHE](https://img.shields.io/badge/Fhenix-CoFHE-purple.svg)](https://fhenix.io)
+[![Tests](https://img.shields.io/badge/Tests-42%20passing-green.svg)](#testing)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-2dd4bf.svg)](https://fhe-oracle-bridge-demo.surge.sh/)
+
+| | |
+|---|---|
+| **Live dashboard** | https://fhe-oracle-bridge-demo.surge.sh/ |
+| **Network** | Arbitrum Sepolia (`421614`) |
+| **Repository** | https://github.com/Nanle-code/fhe-oracle-bridge |
+| **Oracle (Arbiscan)** | [`0x4c1A…26dC3`](https://sepolia.arbiscan.io/address/0x4c1A39704D65992464C4BE356c1A0BA001526dC3) |
+| **Liquidator (Arbiscan)** | [`0x5d9D…f3ff`](https://sepolia.arbiscan.io/address/0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff) |
+| **Threshold alerts (Arbiscan)** | [`0x8088…B1932`](https://sepolia.arbiscan.io/address/0x80886CCF7253337E1ABe911CD36f1F7BAAdB1932) |
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Hackathon Judging Criteria](#hackathon-judging-criteria)
+- [Problem](#problem)
+- [Solution](#solution)
+- [Core Features](#core-features)
+- [How FHE Oracle Bridge Works](#how-fhe-oracle-bridge-works)
+- [System Architecture](#system-architecture)
+- [Privacy Architecture](#privacy-architecture)
+- [FHE & CoFHE Integration](#fhe--cofhe-integration)
+- [Encrypted Median](#encrypted-median)
+- [Consumer Flows](#consumer-flows)
+- [User Flow](#user-flow)
+- [Data Flow](#data-flow)
+- [Live Deployment](#live-deployment)
+- [Dashboard](#dashboard)
+- [Contracts](#contracts)
+- [Integration Guide](#integration-guide)
+- [Keeper & Feeder Operations](#keeper--feeder-operations)
+- [Environment Variables](#environment-variables)
+- [Installation](#installation)
+- [Running Locally](#running-locally)
+- [Live Testnet Demo](#live-testnet-demo)
+- [Testing](#testing)
+- [npm Scripts](#npm-scripts)
+- [Project Structure](#project-structure)
+- [Security & Privacy Rules](#security--privacy-rules)
+- [Market Potential](#market-potential)
+- [Roadmap](#roadmap)
+- [Quality Checklist](#quality-checklist)
+- [Final Demo Flow](#final-demo-flow)
+- [Troubleshooting](#troubleshooting)
+- [Resources](#resources)
+- [License](#license)
 
 ---
 
 ## Overview
 
-**FHE Oracle Bridge** is infrastructure for a **privacy-preserving price oracle**: market prices are encrypted off-chain, written on-chain as FHE handles, optionally aggregated (**encrypted median** across feeders), and consumed by **whitelisted** DeFi contracts that act on prices **without a public plaintext tick**.
+FHE Oracle Bridge is infrastructure for **private market data in DeFi**. It is designed for:
 
-| Capability | Description |
-|------------|-------------|
-| **Private ingest** | Feeders encrypt locally; only ciphertext lands on-chain |
-| **Private aggregation** | Multi-feeder **encrypted median** via FHE comparisons |
-| **Encrypted predicates** | Consumers ask “is spot above my threshold?” with thresholds as ciphertext |
-| **Boolean-only reveal** | CoFHE liquidation/alerts reveal **one bool**, not USD |
-| **Access control** | `AccessRegistry` whitelist + per-feed TTL staleness |
+- Lending & borrowing protocols that need liquidation checks without public health factors
+- Perps & options desks that want threshold alerts without leaking levels
+- DAO treasuries monitoring portfolio risk privately
+- Oracle integrators building on Fhenix CoFHE
+- MEV-sensitive strategies that must not expose oracle ticks on-chain
 
-**Non-goals (v1):** general arbitrary-data oracle; large decentralized feeder set; tokenized fee marketplace.
+**What it does:**
 
-**Repository includes:** Solidity contracts (local mock + CoFHE + Fhenix variants), feeder/keeper automation, static dashboard (`frontend/`), **36 Hardhat tests**, demo scripts.
+1. Feeders fetch spot (CoinGecko + Binance), **encrypt client-side**, and submit ciphertext to the oracle.
+2. The oracle optionally aggregates multiple feeders with an **encrypted median** — still ciphertext.
+3. Whitelisted consumer contracts pull encrypted prices and run **FHE comparisons**.
+4. For CoFHE production paths, only a **single boolean** crosses the threshold-decrypt boundary (liquidatable? alert triggered?).
 
----
+**What it does not do (v1):** arbitrary off-chain data feeds, large decentralized feeder economies, or a public `latestAnswer()` USD index.
 
-## Wave 4 — Private liquidation
-
-> **What Wave 4 proves:** *Full liquidation cycle — encrypted check, boolean result, keeper action — price drives everything, nobody sees it.*
-
-> **In one line:** *Encrypted threshold, boolean result, keeper action — the triggering price was never seen by anyone.*
-
-Wave 4 is the **private liquidation** milestone: the protocol asks **“is this position liquidatable?”** inside FHE — not **“what is the spot price?”** — and only a **single boolean** may cross the CoFHE threshold boundary before collateral moves.
-
-### Wave 4 deliverables
-
-| # | Deliverable | Status | Where |
-|---|-------------|--------|--------|
-| 1 | **Private liquidation contracts** | ✅ | [`PrivateLiquidator.sol`](./contracts/PrivateLiquidator.sol) (local) · [`PrivateLiquidatorCofhe.sol`](./contracts/PrivateLiquidatorCofhe.sol) (live) |
-| 2 | **Keeper** — watch event, decrypt bool, complete liquidation | ✅ | [`scripts/liquidationKeeper.js`](./scripts/liquidationKeeper.js) |
-| 3 | **Demo** — full cycle, no plaintext price in any step | ✅ local · 🔄 testnet txs | [`scripts/demoFlow.js`](./scripts/demoFlow.js) · [`scripts/wave4LiveE2E.js`](./scripts/wave4LiveE2E.js) |
-| 4 | **Hosted dashboard for judges** | ✅ | https://fhe-oracle-bridge-demo.surge.sh/ |
-| 5 | **Reproducible testnet runbook** | ✅ | [Live testnet demo](#live-testnet-demo) below |
-
-### Wave 4 flow (CoFHE — Arbitrum Sepolia)
-
-```
-openPosition(encThreshold)     →  threshold stored as euint128
-requestLiquidationCheck(id)    →  FHE.gt(threshold, encryptedSpot) → LiquidationCheckPrepared(ctHash)
-keeper: decryptForTx(ctHash)   →  learns ONLY isLiquidatable (not USD)
-completeLiquidation(id, bool)  →  if true: PositionLiquidated + collateral to keeper
-```
-
-**Contracts (live):** `PrivateLiquidator` → `0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff` ([Arbiscan](https://sepolia.arbiscan.io/address/0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff))
-
-### Review Wave 4 in 5 minutes (judges)
-
-| Step | Action |
-|------|--------|
-| 1 | Open **https://fhe-oracle-bridge-demo.surge.sh/** — on-page **“For judges”** walkthrough |
-| 2 | Connect wallet on **Arbitrum Sepolia** → click **refresh** (feeds show round/age, not plaintext USD) |
-| 3 | Read **privacy proof** (Chainlink leak vs FHE handles) · sidebar **Event log** |
-| 4 | Arbiscan: [liquidator](https://sepolia.arbiscan.io/address/0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff) · [oracle](https://sepolia.arbiscan.io/address/0x4c1A39704D65992464C4BE356c1A0BA001526dC3) — no public price field |
-| 5 | Optional local proof: `npx hardhat run scripts/demoFlow.js --network hardhat` |
-
-### Run Wave 4 yourself (operators)
-
-```bash
-npm run demo:preflight          # RPC + CoFHE + feed health
-npm run wave4:live              # full E2E: spot → open → crash → liquidate
-# or: npm run wave4:live:wait   # wait for CoFHE, then E2E
-```
-
-Split steps: [`wave4:open`](#npm-scripts) → `POSITION_ID=N npm run wave4:finish` · Always-on: `npm run spin` (feeder + **liquidation keeper** + frontend).
-
-**Recorded Wave 4 txs** (paste after a successful live run):
-
-| Event | Tx hash |
-|-------|---------|
-| `PositionOpened` | _(optional)_ |
-| `LiquidationCheckPrepared` | _(optional)_ |
-| `PositionLiquidated` / `completeTx` | _(paste from `npm run wave4:live`)_ |
+**Repository includes:** Solidity (local mock + CoFHE + Fhenix variants), feeder/keeper automation, fintech dashboard, **42 Hardhat tests**, live E2E scripts, CI smoke workflows.
 
 ---
 
-## The problem
+## Hackathon Judging Criteria
+
+This section maps each Fhenix **Privacy-by-Design Buildathon** criterion to concrete evidence in this repository.
+
+### 1. Privacy Architecture
+
+**Claim:** Spot prices and user thresholds never appear as plaintext on-chain. The only public outputs tied to sensitive comparisons are **booleans** after CoFHE threshold decrypt.
+
+| Privacy layer | Implementation | Evidence |
+|---------------|----------------|----------|
+| Encrypted storage | `euint128 encryptedPrice` in `FHEOracleBridgeCofhe` | [`contracts/FHEOracleBridgeCofhe.sol`](./contracts/FHEOracleBridgeCofhe.sol) |
+| Access control | `AccessRegistry` whitelist on `getEncryptedPrice` | [`contracts/AccessRegistry.sol`](./contracts/AccessRegistry.sol) |
+| Encrypted aggregation | `MedianLibCofhe.encryptedMedian` — no plaintext median step | [`contracts/libraries/MedianLibCofhe.sol`](./contracts/libraries/MedianLibCofhe.sol) |
+| Encrypted predicates | `FHE.gt` / `FHE.lt` inside consumer contracts | [`PrivateLiquidatorCofhe.sol`](./contracts/PrivateLiquidatorCofhe.sol), [`PrivateThresholdAlertsCofhe.sol`](./contracts/PrivateThresholdAlertsCofhe.sol) |
+| Minimal reveal | `FHE.allowGlobal` + async `decryptForTx` → **bool only** | [`scripts/liquidationKeeper.js`](./scripts/liquidationKeeper.js), [`scripts/thresholdAlertKeeper.js`](./scripts/thresholdAlertKeeper.js) |
+| Staleness guard | Per-feed TTL — metadata public, price ciphertext gated | `getEncryptedPrice` reverts when stale |
+
+**Privacy boundary (one sentence):**  
+Spot and user thresholds stay FHE ciphertext on-chain; keepers learn only `isLiquidatable` or `triggered` — not USD.
+
+**Comparison vs transparent oracles:**
+
+| Approach | Price private? | On-chain FHE? | Public tick? |
+|----------|----------------|---------------|--------------|
+| Chainlink-style | No | N/A | Yes |
+| ZK / DECO | Partial | Off-chain proof | Partial |
+| TEE oracle | Trust hardware | Yes | Partial |
+| **FHE Oracle Bridge** | **Yes** | **Yes** | **No** |
+
+---
+
+### 2. Innovation & Originality
+
+**Claim:** We are not another public index feed. We built a **predicate oracle rail** — protocols ask encrypted questions and get encrypted answers, with minimal plaintext leakage.
+
+| Innovation | Why it matters |
+|------------|----------------|
+| **On-chain encrypted median** | Multi-feeder aggregation without decrypting feeder submissions |
+| **Predicate consumers** | Liquidation & alerts use comparisons, not public price reads |
+| **Async CoFHE pattern** | `prepare → keeper decrypt bool → complete` — production-ready Fhenix flow |
+| **Triple contract variants** | Same logic on Hardhat mock, CoFHE testnet, and Fhenix Helium |
+| **Incremental delivery** | Milestones from encrypted ingest → access control → quorum → liquidation → alerts |
+
+**Core differentiator:** Chainlink publishes `$3,500`. We publish `euint128` and let integrators compute `spot > threshold` entirely inside FHE.
+
+---
+
+### 3. User Experience
+
+**Claim:** Judges and developers can verify privacy and liveness without reading Solidity first.
+
+| UX surface | What the user sees |
+|------------|-------------------|
+| **[Live dashboard](https://fhe-oracle-bridge-demo.surge.sh/)** | Fintech hero + glass dashboard; feed round/age/freshness — **no plaintext USD** |
+| **Wallet connect** | MetaMask on Arbitrum Sepolia; network switch helper |
+| **Privacy proof panel** | Side-by-side Chainlink leak vs encrypted handles |
+| **Event log** | `ThresholdCheckPrepared`, `ThresholdAlert`, `LiquidationCheckPrepared` — predicates + bools only |
+| **One-command demos** | `npm run wave5:live`, `npm run wave4:live`, `npm run demo:preflight` |
+| **Operator stack** | `npm run spin` — feeder + both keepers + frontend |
+
+**Design intent:** The UI intentionally **does not** show spot USD — that is the product thesis, not a missing feature.
+
+---
+
+### 4. Technical Execution
+
+**Claim:** End-to-end system deployed on CoFHE testnet with tests, automation, and reproducible runbooks.
+
+| Deliverable | Status | Proof |
+|-------------|--------|-------|
+| CoFHE contracts deployed | ✅ | [Live deployment](#live-deployment) |
+| 42 Hardhat tests | ✅ | `npm test` |
+| Live liquidation E2E | ✅ | `npm run wave4:live` |
+| Live threshold alert E2E | ✅ | `npm run wave5:live` |
+| Feeder daemon (live APIs) | ✅ | [`scripts/feederDaemon.js`](./scripts/feederDaemon.js) |
+| Liquidation + alert keepers | ✅ | [`scripts/liquidationKeeper.js`](./scripts/liquidationKeeper.js), [`scripts/thresholdAlertKeeper.js`](./scripts/thresholdAlertKeeper.js) |
+| CI: Hardhat tests | ✅ | [`.github/workflows/hardhat-test.yml`](./.github/workflows/hardhat-test.yml) |
+| CI: testnet smoke | ✅ | [`.github/workflows/testnet-smoke.yml`](./.github/workflows/testnet-smoke.yml) |
+| CoFHE retry / wait helpers | ✅ | [`scripts/cofheWait.js`](./scripts/cofheWait.js), [`scripts/lib/cofheNetwork.js`](./scripts/lib/cofheNetwork.js) |
+
+**Recorded live transactions (Arbitrum Sepolia):**
+
+| Flow | Event | Tx |
+|------|-------|-----|
+| Threshold alerts | `ThresholdCheckPrepared` | [`0x98cd6091…`](https://sepolia.arbiscan.io/tx/0x98cd60918f517771c6f15393dbd56f02e15adf066b4abb41c76a548f0e859b43) |
+| Threshold alerts | `ThresholdAlert` / complete | [`0x8edfcef0…`](https://sepolia.arbiscan.io/tx/0x8edfcef0aaebf2fedcd78c706acff80fc2b609f609b60379ee1a3bebed98ae33) |
+| Private liquidation | `PositionOpened` (#3) | [`0x89d033ef…`](https://sepolia.arbiscan.io/tx/0x89d033ef02ab95168e5964f77d8bde0f280f08eb1f8f19ee2241b1111bfec49f) |
+| Private liquidation | `LiquidationCheckPrepared` | [`0xa3f207ec…`](https://sepolia.arbiscan.io/tx/0xa3f207ec707501e616967256f83b1e7bf9c4645eaddf9cf95013df726dcbc8c2) |
+| Private liquidation | `PositionLiquidated` / complete | [`0x4bebe95c…`](https://sepolia.arbiscan.io/tx/0x4bebe95c8b24f046a9ea9eed4a16725f68fcaa3ad505ca32fa3ad3efe1dadd51) |
+
+---
+
+### 5. Market Potential
+
+**Claim:** Public oracle ticks are a structural MEV and compliance problem. Private predicate oracles unlock institutional and retail use cases that cannot live on transparent rails.
+
+| Segment | Pain today | FHE Oracle Bridge value |
+|---------|------------|-------------------------|
+| **Lending** | Liquidation bots hunt visible health factors | Encrypted threshold + bool-only liquidations |
+| **Perps / options** | Stop levels leak via public oracles | Private threshold alerts |
+| **Institutional DeFi** | Compliance blocks fully public price rails | Ciphertext storage + whitelist access |
+| **MEV-sensitive DAOs** | Treasury rebalancing signals front-run | No public USD tick on-chain |
+| **Fhenix ecosystem** | Needs reference oracle + consumer patterns | Deployed stack + integration guide |
+
+**Integrators:** Any whitelisted Solidity consumer on CoFHE can pull `euint128` and run native FHE ops — lending, perps, structured products, risk engines.
+
+**Business model (future):** feeder staking fees, keeper marketplace, whitelist SaaS for consumer onboarding, SLA feeds for private predicates.
+
+---
+
+## Problem
+
+Traditional oracles expose plaintext prices to every observer:
 
 ```solidity
-// Traditional oracle (Chainlink-style):
-latestAnswer() → 350000000000   // $3,500 — visible to every bot
+// Chainlink-style:
+latestAnswer() → 350000000000   // $3,500.00 — visible to every bot
 ```
 
 | Vulnerability | Impact |
 |---------------|--------|
-| **MEV front-running** | Bots read oracle updates before settlement |
+| **MEV front-running** | Bots read oracle updates before user txs settle |
 | **Position hunting** | Visible liquidation thresholds get exploited |
-| **Institutional blocker** | Compliance blocks fully public financial rails |
+| **Signal leakage** | Alert/stop levels inferable from on-chain behavior + public prices |
+| **Institutional blocker** | Compliance & desk policy often forbid fully public financial rails |
+
+Most oracle infrastructure optimizes for **price discovery transparency**.
+
+FHE Oracle Bridge optimizes for **action privacy** — protocols need to know *whether* a condition is met, not broadcast *what* the exact tick is.
 
 ---
 
-## Solution & privacy boundary
+## Solution
+
+FHE Oracle Bridge creates a **privacy layer between market data and DeFi execution**.
+
+It helps protocols answer:
+
+- Is spot above my encrypted threshold?
+- Is this position liquidatable under encrypted spot?
+- What is the encrypted median across feeders this round?
+- Should we trigger an alert — **without** publishing X or spot USD?
+
+**Solution stack:**
 
 ```
-✅  Prices stored as euint128/euint256 — FHE ciphertext on-chain
-✅  Median computed inside FHE precompile
-✅  Comparisons (gt, lt, and) run encrypted
-✅  Liquidations/alerts: only boolean crosses plaintext (CoFHE)
-✅  Non-whitelisted callers revert on getEncryptedPrice
+Feeder encrypts spot → Oracle stores euint128 → Consumer compares in FHE → CoFHE reveals bool only
 ```
-
-| Approach | Price private? | On-chain FHE? | Access |
-|----------|----------------|---------------|--------|
-| Chainlink | No | N/A | Public |
-| DECO / ZK | Partial | Off-chain proof | Public |
-| TEE-based | Trust hardware | Yes | Partial |
-| **FHE Oracle Bridge** | **Yes** | **Yes** | **Whitelisted** |
-
-**Privacy boundary (one sentence for judges):**  
-Spot and user thresholds stay **FHE ciphertext on-chain**; the keeper and chain learn only **`isLiquidatable`** (or alert bool) after CoFHE threshold decryption — **not** a public USD oracle tick.
-
-**Trust notes:** Feeders see spot before encrypting off-chain; on-chain observers cannot read another feeder’s submission as plaintext. Keeper learns the **predicate boolean only**, not threshold or spot USD.
 
 ---
 
-## Architecture
+## Core Features
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Off-chain feeder (CoFHE SDK encrypt)                       │
-│  submitPrice(feedId, inEuint128) → ciphertext only         │
-└──────────────────────────┬──────────────────────────────────┘
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  FHEOracleBridge* — feeds, quorum, encrypted median          │
-│  getEncryptedPrice() → whitelisted consumers only            │
-└─────────┬───────────────────────────────┬───────────────────┘
-          ▼                               ▼
-┌──────────────────┐    ┌─────────────────────────────────────┐
-│ AccessRegistry   │    │ MockConsumer*, PrivateLiquidator*,  │
-│ whitelist/revoke │    │ PrivateThresholdAlerts* (CoFHE)     │
-└──────────────────┘    └─────────────────────────────────────┘
-                                      │
-                          Keeper: decrypt bool → completeLiquidation
-```
+### 1. Private Price Ingest
 
-**Contract variants:**
+Feeders fetch ETH/USD and BTC/USD from CoinGecko + Binance, encrypt with `@cofhe/sdk`, and call `submitPrice(feedId, inEuint128)`.
 
-| Network | Oracle | Liquidator |
-|---------|--------|------------|
-| Hardhat local | `FHEOracleBridge` | `PrivateLiquidator` |
-| Arbitrum/Base Sepolia (CoFHE) | `FHEOracleBridgeCofhe` | `PrivateLiquidatorCofhe` |
-| Fhenix Helium | `FHEOracleBridgeFhenix` | `PrivateLiquidatorFhenix` |
+- Only ciphertext lands on-chain
+- Feeder must be registered and staked (≥ 0.01 ETH)
+- Per-feed TTL staleness guard
 
 ---
 
-## Core innovation: encrypted median
+### 2. Encrypted Median Aggregation
 
-When multiple feeders submit for a round, the oracle finalizes an **encrypted median** in `MedianLibCofhe` — no feeder sees another’s price on-chain; no observer sees plaintext at any step.
+When `minFeeders ≥ 2`, multiple encrypted submissions finalize into one **encrypted median** via `MedianLibCofhe` — no feeder or observer sees another feeder's plaintext price on-chain.
+
+---
+
+### 3. Whitelist-Gated Encrypted Reads
+
+`AccessRegistry` controls which consumer contracts may call `getEncryptedPrice`. Non-whitelisted callers revert.
+
+---
+
+### 4. Private Liquidation
+
+`PrivateLiquidatorCofhe` stores encrypted liquidation thresholds. Flow:
+
+```
+openPosition → requestLiquidationCheck → keeper decrypts bool → completeLiquidation
+```
+
+Keeper learns **only** `isLiquidatable` — not spot or threshold USD.
+
+---
+
+### 5. Private Threshold Alerts
+
+`PrivateThresholdAlertsCofhe` stores encrypted alert levels. Flow:
+
+```
+subscribe → prepareThresholdCheck → keeper decrypts bool → completeThresholdAlert
+```
+
+Only `triggered: true/false` is public after CoFHE decrypt.
+
+---
+
+### 6. Live Dashboard
+
+Hosted fintech landing + operational dashboard:
+
+- Feed freshness, round IDs, quorum progress
+- Consumer activity stream (predicate events)
+- Wallet connect on Arbitrum Sepolia
+- Privacy proof comparison panel
+
+---
+
+## How FHE Oracle Bridge Works
+
+```mermaid
+flowchart TD
+    A[Feeder fetches spot APIs] --> B[CoFHE SDK encrypt_uint128]
+    B --> C[submitPrice on FHEOracleBridgeCofhe]
+    C --> D{Quorum met?}
+    D -- No --> E[QuorumPending event]
+    D -- Yes --> F[Encrypted median finalized]
+    F --> G[Whitelisted consumer pulls euint128]
+    G --> H[FHE comparison in consumer contract]
+    H --> I[prepareLiquidationCheck / prepareThresholdCheck]
+    I --> J[ThresholdCheckPrepared / LiquidationCheckPrepared]
+    J --> K[Keeper: decryptForTx ctHash]
+    K --> L[Boolean only: isLiquidatable / triggered]
+    L --> M[completeLiquidation / completeThresholdAlert]
+```
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart LR
+    subgraph OffChain[Off-chain]
+        FD[Feeder Daemon]
+        LK[Liquidation Keeper]
+        TK[Threshold Keeper]
+        APIs[CoinGecko + Binance]
+    end
+
+    subgraph OnChain[Arbitrum Sepolia — CoFHE]
+        AR[AccessRegistry]
+        OB[FHEOracleBridgeCofhe]
+        PL[PrivateLiquidatorCofhe]
+        PTA[PrivateThresholdAlertsCofhe]
+    end
+
+    subgraph Fhenix[Fhenix CoFHE Network]
+        TN[Threshold decrypt + ZK verify]
+    end
+
+    subgraph Frontend[Frontend]
+        UI[Dashboard + Hero]
+    end
+
+    APIs --> FD
+    FD -->|encrypted submitPrice| OB
+    AR -->|whitelist| OB
+    OB -->|getEncryptedPrice| PL
+    OB -->|getEncryptedPrice| PTA
+    PL -->|ctHash| LK
+    PTA -->|ctHash| TK
+    LK --> TN
+    TK --> TN
+    TN -->|bool + proof| PL
+    TN -->|bool + proof| PTA
+    OB --> UI
+    PL --> UI
+    PTA --> UI
+```
+
+**Contract variants by network:**
+
+| Network | Oracle | Liquidator | Alerts |
+|---------|--------|------------|--------|
+| Hardhat local | `FHEOracleBridge` | `PrivateLiquidator` | `PrivateThresholdAlerts` |
+| Arbitrum / Base Sepolia (CoFHE) | `FHEOracleBridgeCofhe` | `PrivateLiquidatorCofhe` | `PrivateThresholdAlertsCofhe` |
+| Fhenix Helium | `FHEOracleBridgeFhenix` | `PrivateLiquidatorFhenix` | — |
+
+---
+
+## Privacy Architecture
+
+```mermaid
+flowchart TD
+    subgraph PublicOnChain[Public on-chain]
+        M1[Feed metadata: round, TTL, description]
+        M2[Events: PriceSubmitted, FeedUpdated]
+        M3[Final bool: isLiquidatable / triggered]
+    end
+
+    subgraph PrivateOnChain[Private on-chain — FHE ciphertext]
+        P1[euint128 encryptedPrice]
+        P2[euint128 encLiquidationThreshold]
+        P3[euint128 encAlertThreshold]
+        P4[FHE predicate ebool before decrypt]
+    end
+
+    subgraph OffChainEncrypt[Off-chain encrypt boundary]
+        O1[Feeder sees spot before encrypt]
+    end
+
+    O1 --> P1
+    P1 --> P4
+    P2 --> P4
+    P3 --> P4
+    P4 -->|CoFHE threshold decrypt| M3
+```
+
+**What stays private:**
+
+- Spot USD (on-chain storage)
+- User liquidation / alert thresholds
+- Feeder submission values (opaque ciphertext handles)
+- Comparison operations (FHE precompile)
+
+**What is public:**
+
+- Feed metadata (round, age, quorum count)
+- Event types and addresses (not USD values)
+- **Final boolean** after authorized CoFHE decrypt
+
+---
+
+## FHE & CoFHE Integration
+
+| Component | Package / service |
+|-----------|-------------------|
+| Solidity FHE types | `@fhenixprotocol/cofhe-contracts` |
+| Client encryption | `@cofhe/sdk` (`Encryptable.uint128`) |
+| Hardhat testing | `@cofhe/hardhat-plugin` + local `FHEMock` |
+| Threshold decrypt | CoFHE network (`decryptForTx`) |
+| ACL propagation | `FHE.allowThis`, `FHE.allow`, `FHE.allowGlobal` |
+
+**Price encoding:** Chainlink-style 8 decimals — `$3,500.00` → `350000000000n`.
+
+**ABI note:**
+
+```solidity
+// Local mock:
+function submitPrice(uint256 feedId, uint256 encPrice);
+
+// CoFHE production:
+function submitPrice(uint256 feedId, InEuint128 calldata encPrice);
+```
+
+---
+
+## Encrypted Median
+
+When multiple feeders submit for a round, the oracle finalizes an encrypted median:
 
 ```solidity
 // MedianLibCofhe — pairwise FHE.gt + FHE.select sort, return middle
@@ -203,14 +452,91 @@ euint128 aggregated = MedianLibCofhe.encryptedMedian(prices);
 feeds[feedId].encryptedPrice = aggregated;
 ```
 
-- **Chainlink:** median off-chain in plaintext → `uint256` on-chain  
-- **FHE Oracle Bridge:** median on-chain in ciphertext via FHE precompile  
+| | Chainlink-style | FHE Oracle Bridge |
+|--|-----------------|-------------------|
+| Median computed | Off-chain plaintext | On-chain ciphertext |
+| On-chain value | `uint256` USD | `euint128` handle |
+| Observer sees | Exact price | Opaque handle |
 
-With `minFeeders >= 2`, first submit emits `QuorumPending` until quorum, then `FeedUpdated`.
+With `minFeeders >= 2`, partial rounds emit `QuorumPending` until quorum, then `FeedUpdated`.
 
 ---
 
-## Live deployment (Arbitrum Sepolia)
+## Consumer Flows
+
+### Private Liquidation
+
+```
+openPosition(feedId, encLiqPrice)     → threshold stored as euint128
+requestLiquidationCheck(positionId)   → FHE.gt(threshold, spot) → LiquidationCheckPrepared(ctHash)
+keeper: decryptForTx(ctHash)          → learns ONLY isLiquidatable
+completeLiquidation(id, bool, proof)  → collateral to keeper if true
+```
+
+### Threshold Alerts
+
+```
+subscribe(feedId, encThreshold, mode) → threshold stored as euint128
+submitPrice (feeder)                  → encrypted spot updated
+prepareThresholdCheck(subId)          → FHE.lt/gt → ThresholdCheckPrepared(ctHash)
+keeper: decryptForTx(ctHash)          → learns ONLY triggered
+completeThresholdAlert(subId, bool)   → ThresholdAlert event (bool only)
+```
+
+---
+
+## User Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Dashboard
+    participant Feeder
+    participant Oracle as FHEOracleBridgeCofhe
+    participant Consumer as PrivateThresholdAlertsCofhe
+    participant Keeper
+    participant CoFHE as CoFHE Network
+
+    User->>UI: Connect wallet (Arbitrum Sepolia)
+    UI->>Oracle: Read feed metadata (round, freshness)
+    Feeder->>Oracle: submitPrice(encrypted)
+    Oracle-->>UI: FeedUpdated / QuorumPending
+
+    User->>Consumer: subscribe(encThreshold)
+    User->>Consumer: prepareThresholdCheck(subId)
+    Consumer-->>Keeper: ThresholdCheckPrepared(ctHash)
+    Keeper->>CoFHE: decryptForTx(ctHash)
+    CoFHE-->>Keeper: triggered + proof
+    Keeper->>Consumer: completeThresholdAlert(bool, proof)
+    Consumer-->>UI: ThresholdAlert(triggered)
+    UI-->>User: Show bool only — no USD
+```
+
+---
+
+## Data Flow
+
+```mermaid
+flowchart TD
+    A[Spot APIs] --> B[Feeder encrypt_uint128]
+    B --> C[submitPrice]
+    C --> D[Round submissions map]
+    D --> E{minFeeders reached?}
+    E -- No --> F[QuorumPending]
+    E -- Yes --> G[MedianLibCofhe]
+    G --> H[feeds feedId.encryptedPrice]
+    H --> I[FHE.allow whitelisted consumers]
+    I --> J[getEncryptedPrice]
+    J --> K[Consumer FHE.gt / FHE.lt]
+    K --> L[ebool predicate handle]
+    L --> M[allowGlobal + emit Prepared event]
+    M --> N[Keeper decryptForTx]
+    N --> O[publishDecryptResult + bool event]
+```
+
+---
+
+## Live Deployment
 
 Canonical addresses in [`frontend/config.json`](./frontend/config.json):
 
@@ -231,121 +557,63 @@ After redeploy: update `frontend/config.json`, `.env`, and republish dashboard (
 
 ---
 
-## Buildathon judging criteria
+## Dashboard
 
-| Criterion | Evidence in this repo |
-|-----------|-------------------------|
-| **Privacy architecture** | `euint128` storage, `AccessRegistry`, encrypted median, bool-only CoFHE liquidation |
-| **Innovation & originality** | On-chain FHE median; predicate oracle rail vs public index feeds |
-| **User experience** | [Live dashboard](https://fhe-oracle-bridge-demo.surge.sh/), `demoFlow.js`, wallet + feed freshness UI |
-| **Technical execution** | 36 tests, deployed CoFHE contracts, spin/keepers/smoke CI |
-| **Market potential** | MEV / whale hunting / institutional privacy; lending & perps as integrators |
+| | |
+|---|---|
+| **Live** | https://fhe-oracle-bridge-demo.surge.sh/ |
+| **Local** | `npm run frontend` → http://127.0.0.1:8765/ |
+| **Republish** | `npm run deploy:frontend:surge` |
 
-**5-minute judge path:** see [Wave 4 — Review in 5 minutes](#review-wave-4-in-5-minutes-judges).
+**Pages / sections:**
 
-**Pitch:** *FHE Oracle Bridge lets DeFi act on markets without broadcasting every tick to MEV bots — encrypted ingest, encrypted median, boolean-only liquidations on CoFHE ([Wave 4](#wave-4--private-liquidation)).*
+| Section | Purpose |
+|---------|---------|
+| Hero | Fintech landing — value prop, wallet CTA, live feed metrics |
+| Dashboard | Stats, privacy proof, live feed cards |
+| Price feeds | Feed table with round & freshness |
+| Access | Whitelisted consumers from `AccessRegistry` |
+| Feeders | Feeder addresses from on-chain events |
+| Event log | `PriceSubmitted`, `FeedUpdated`, predicate & bool events |
 
 ---
 
 ## Contracts
 
-### `FHEOracleBridge*` — core oracle
+### `FHEOracleBridge*`
 
 | Function | Access | Description |
 |----------|--------|-------------|
-| `createFeed(description, ttl, minFeeders)` | Owner | New feed |
-| `submitPrice(feedId, encPrice)` | Feeder | Encrypted submission |
-| `getEncryptedPrice(feedId)` | Whitelisted | Returns ciphertext |
-| `getFeedInfo(feedId)` | Public | Metadata only |
-| `addFeeder` / `slash` / `pauseFeed` | Owner | Ops |
+| `createFeed(description, ttl, minFeeders)` | Owner | Create price feed |
+| `submitPrice(feedId, encPrice)` | Feeder | Encrypted price submission |
+| `getEncryptedPrice(feedId)` | Whitelisted | Returns `euint128` ciphertext |
+| `getFeedInfo(feedId)` | Public | Metadata only — no price |
+| `addFeeder` / `slash` / `pauseFeed` | Owner | Operations |
 
-### `AccessRegistry.sol`
+### `AccessRegistry`
 
 | Function | Description |
 |----------|-------------|
-| `whitelist(consumer, label)` | Allow consumer |
+| `whitelist(consumer, label)` | Allow consumer to read encrypted prices |
 | `revoke(consumer)` | Remove access |
 
 Non-whitelisted `getEncryptedPrice` → `revert("Oracle: consumer not whitelisted")`.
 
-### `MockConsumer*` — reference integration
+### `PrivateLiquidator*`
 
-`isPriceAbove`, `isPriceBelow`, `isWithinBand` — encrypted comparisons; local mock uses sync `FHE.decrypt`; CoFHE uses async patterns.
+Encrypted liquidation thresholds; CoFHE async `requestLiquidationCheck` → keeper `completeLiquidation`.
 
-### `PrivateLiquidator*` — private liquidation (Wave 4)
+### `PrivateThresholdAlerts*`
 
-Positions store **encrypted** liquidation thresholds. CoFHE path: `requestLiquidationCheck` → keeper `completeLiquidation`. Full flow: [Wave 4 — Private liquidation](#wave-4--private-liquidation).
+Encrypted alert levels; CoFHE async `prepareThresholdCheck` → keeper `completeThresholdAlert`.
 
----
+### `MockConsumer*`
 
-## Quick start
-
-```bash
-git clone https://github.com/Nanle-code/fhe-oracle-bridge
-cd fhe-oracle-bridge
-npm install
-cp .env.example .env   # add PRIVATE_KEY, contract addresses after deploy
-```
-
-```bash
-npx hardhat test                                        # 36 passing
-npx hardhat run scripts/demoFlow.js --network hardhat   # Wave 4 judge demo (local)
-npm run wave4:live                                      # Wave 4 E2E on Arbitrum Sepolia
-npm run frontend                                        # local dashboard
-```
+Reference integration: `isPriceAbove`, `isPriceBelow`, `isWithinBand`.
 
 ---
 
-## Live testnet demo
-
-> **Wave 4 operators:** start with [Wave 4 — Run yourself](#run-wave-4-yourself-operators). Judges: [Wave 4 — Review in 5 minutes](#review-wave-4-in-5-minutes-judges).
-
-### Prerequisites
-
-`.env`: `PRIVATE_KEY`, `FHE_ORACLE_BRIDGE`, `PRIVATE_LIQUIDATOR` (must match [`frontend/config.json`](./frontend/config.json)). Arbitrum Sepolia ETH (~0.02+).
-
-### Health & Wave 4 E2E
-
-```bash
-npm run demo:preflight       # RPC, feeds, CoFHE endpoints
-npm run cofhe:wait           # if ZK_VERIFY_FAILED / timeout
-npm run wave4:live           # full liquidation cycle on testnet
-npm run wave4:live:wait      # wait for CoFHE, then wave4:live
-```
-
-Optional env: `CRASH_BPS=1500` `LIQ_PREMIUM_BPS=500` `COLLATERAL_ETH=0.005` `SKIP_INITIAL_SUBMIT=1`
-
-**Success:** `success: true` + `completeTx`. On Arbiscan: `PositionOpened` → `LiquidationCheckPrepared` → `PositionLiquidated`.
-
-### Wave 4 split steps
-
-```bash
-npm run submit:live:arbitrum-sepolia
-npm run wave4:open
-POSITION_ID=1 npm run wave4:finish
-```
-
-### Always-on stack (feeds + Wave 4 keeper)
-
-```bash
-npm run spin          # feeder + liquidation-keeper + frontend
-npm run spin:logs
-npm run spin:stop
-```
-
-### Dashboard & frontend deploy
-
-| | |
-|---|---|
-| **Judges** | https://fhe-oracle-bridge-demo.surge.sh/ |
-| **Republish** | `npm run deploy:frontend:surge` |
-| **Local** | `npm run frontend` → http://127.0.0.1:8765/ |
-
-Record txs in [Wave 4 — Recorded txs](#recorded-wave-4-txs-paste-after-a-successful-live-run).
-
----
-
-## Integration guide
+## Integration Guide
 
 ### Step 1 — Import
 
@@ -360,9 +628,9 @@ import "@fhenixprotocol/cofhe-contracts/FHE.sol";
 registry.whitelist(address(myProtocol), "MyProtocol v1");
 ```
 
-### Step 3 — CoFHE (production testnet / Wave 4)
+### Step 3 — CoFHE (production)
 
-Use the **async** Wave 4 pattern ([flow](#wave-4-flow-cofhe--arbitrum-sepolia)) — not sync `FHE.decrypt` in one tx:
+Use the **async** pattern — not sync `FHE.decrypt` in one tx:
 
 ```solidity
 liquidator.openPosition(feedId, encLiqPrice, { value: collateral });
@@ -370,201 +638,375 @@ liquidator.requestLiquidationCheck(positionId);
 // Keeper: decryptForTx(ctHash) → completeLiquidation(positionId, isLiquidatable, proof)
 ```
 
-### Step 3 — Hardhat local (mock)
+### Step 4 — Hardhat local (mock)
 
 ```solidity
 euint128 price = oracle.getEncryptedPrice(1);
-euint128 threshold = FHE.asEuint128(encThreshold);
 ebool isAbove = FHE.gt(price, threshold);
 bool result = FHE.decrypt(isAbove);  // mock only
 ```
 
-### Client encryption (CoFHE)
+### Client encryption
 
 ```typescript
 import { createCofheClient } from "@cofhe/sdk/node";
-// encrypt_uint128 → submitPrice / openPosition with inEuint128 payload
-```
-
-Prices use **8 decimals** (Chainlink-style): `$3,500.00` → `350000000000n`.
-
-### ABI note
-
-```solidity
-// Local mock:
-function submitPrice(uint256 feedId, uint256 encPrice);
-// CoFHE:
-function submitPrice(uint256 feedId, inEuint128 calldata encPrice);
+// encrypt_uint128 → submitPrice / openPosition / subscribe with InEuint128 payload
 ```
 
 ---
 
-## Keeper & feeder operations
+## Keeper & Feeder Operations
 
-### Liquidation keeper (Wave 4)
+### Feeder daemon
 
-Watches `LiquidationCheckPrepared`, runs `decryptForTx(ctHash).withoutPermit()`, calls `completeLiquidation`. See [Wave 4 deliverables](#wave-4-deliverables).
+```bash
+npm run feeder:arbitrum-sepolia
+# Env: PRIVATE_KEY, FHE_ORACLE_BRIDGE
+# Optional: FEEDER2_PRIVATE_KEY for quorum
+```
+
+### Liquidation keeper
 
 ```bash
 npm run keeper:arbitrum-sepolia
-# env: PRIVATE_LIQUIDATOR=0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff, KEEPER_POLL_MS=8000
+# Env: PRIVATE_LIQUIDATOR, KEEPER_POLL_MS=8000
 ```
 
 ### Threshold alert keeper
 
-Same pattern for `PrivateThresholdAlertsCofhe` → `ThresholdCheckPrepared`.
-
 ```bash
 npm run keeper:threshold:arbitrum-sepolia
-# env: PRIVATE_THRESHOLD_ALERTS
+# Env: PRIVATE_THRESHOLD_ALERTS
 ```
 
-### Feeder daemon
-
-Fetches CoinGecko + Binance spot, encrypts, `submitPrice` on interval.
+### Always-on stack
 
 ```bash
-npm run feeder:arbitrum-sepolia
-# optional: FEEDER2_PRIVATE_KEY for quorum (run npm run setup:feeder2 first)
-```
-
-### Multi-feeder quorum
-
-```bash
-npm run setup:feeder2
-npm run feeds:quorum      # create feeds with minFeeders >= 2
-npm run wave3:quorum
+npm run spin          # feeder + both keepers + frontend
+npm run spin:stop
+npm run spin:logs
 ```
 
 ---
 
-## Deployment
+## Environment Variables
+
+Copy [`.env.example`](./.env.example) to `.env` or run:
 
 ```bash
-npx hardhat run scripts/deploy.js --network hardhat
-npx hardhat run scripts/deploy.js --network arbitrumSepolia
-npx hardhat run scripts/deploy.js --network baseSepolia
-npx hardhat run scripts/deploy.js --network helium   # Fhenix native
+npm run setup:env
 ```
-
-| Network | Chain ID | RPC |
-|---------|----------|-----|
-| Arbitrum Sepolia | `421614` | `https://sepolia-rollup.arbitrum.io/rpc` |
-| Base Sepolia | `84532` | `https://sepolia.base.org` |
-| Fhenix Helium | `8008135` | `https://api.helium.fhenix.zone` |
-
-Copy deploy output into `.env`:
 
 ```env
-ACCESS_REGISTRY=0x...
-FHE_ORACLE_BRIDGE=0x...
-MOCK_CONSUMER=0x...
-PRIVATE_LIQUIDATOR=0x...
-PRIVATE_THRESHOLD_ALERTS=0x...
+# Required for live demos
+PRIVATE_KEY=your_private_key_here
+
+# RPC
+ARBITRUM_SEPOLIA_RPC=https://sepolia-rollup.arbitrum.io/rpc
+
+# Contract addresses (from deploy or frontend/config.json)
+ACCESS_REGISTRY=0x3b01F41557C08587c83c1EcA40ef93bb6829D223
+FHE_ORACLE_BRIDGE=0x4c1A39704D65992464C4BE356c1A0BA001526dC3
+MOCK_CONSUMER=0x2B826A58AB77E474c2A3a6C9B8cc521F33AA3d8c
+PRIVATE_LIQUIDATOR=0x5d9DD91F4d8D8bF1c7Df801c6a0453316f4Af3ff
+PRIVATE_THRESHOLD_ALERTS=0x80886CCF7253337E1ABe911CD36f1F7BAAdB1932
+
+# Optional quorum feeders
+# FEEDER2_PRIVATE_KEY=
+# FEEDER3_PRIVATE_KEY=
+
+# Liquidation demo tuning
+# LIQ_PREMIUM_BPS=500
+# CRASH_BPS=1500
+# COLLATERAL_ETH=0.005
+
+# Keeper tuning
+# KEEPER_POLL_MS=8000
+# FEEDER_INTERVAL_MS=60000
+```
+
+Never commit `.env` — it is gitignored.
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/Nanle-code/fhe-oracle-bridge
+cd fhe-oracle-bridge
+npm install
+npm run setup:env
+# Edit .env: set PRIVATE_KEY
 ```
 
 ---
 
-## npm scripts
+## Running Locally
 
-| Script | Purpose |
-|--------|---------|
-| `npm test` | Hardhat test suite (36 tests) |
-| **Wave 4** | |
-| `npm run demo:preflight` | Pre-demo health (RPC, feeds, CoFHE) |
-| `npm run wave4:live` | **Wave 4** — full live liquidation E2E |
-| `npm run wave4:live:wait` | Wait for CoFHE, then Wave 4 E2E |
-| `npm run wave4:open` | Open position only |
-| `npm run wave4:finish` | Crash price + request + complete (`POSITION_ID=N`) |
-| `npm run demoFlow` (via hardhat) | Wave 4 narrative on local mock |
-| `npm run wave3:quorum` | Two-feeder live median |
-| `npm run wave5:live` | Threshold alert E2E |
-| `npm run spin` | Feeder + keepers + frontend |
-| `npm run testnet:smoke` | CI-style live validation |
-| `npm run deploy:arbitrum-sepolia` | Deploy full stack |
-| `npm run feeder:arbitrum-sepolia` | Price feeder daemon |
-| `npm run keeper:arbitrum-sepolia` | Liquidation keeper |
-| `npm run frontend` | Local dashboard |
-| `npm run deploy:frontend:surge` | Publish Surge demo |
+```bash
+# Compile + test
+npx hardhat compile
+npm test
 
-See `package.json` for the full list.
+# Local demos (no testnet)
+npx hardhat run scripts/demoFlow.js --network hardhat
+npx hardhat run scripts/demoThresholdAlerts.js --network hardhat
+
+# Dashboard
+npm run frontend
+# → http://127.0.0.1:8765/
+```
+
+---
+
+## Live Testnet Demo
+
+### Prerequisites
+
+- `.env` with `PRIVATE_KEY` and contract addresses (match [`frontend/config.json`](./frontend/config.json))
+- Arbitrum Sepolia ETH (~0.02+)
+- Wallet must be a **registered feeder with ≥ 0.01 ETH stake** for price submissions
+
+### Preflight
+
+```bash
+npm run demo:preflight
+```
+
+### Threshold alerts (live E2E)
+
+```bash
+npm run submit:live:arbitrum-sepolia   # refresh feeds if stale
+npm run wave5:live
+# or: npm run wave5:live:wait
+```
+
+**Success:** JSON output with `"success": true` and `completeTx` hash. Arbiscan shows `ThresholdCheckPrepared` → `ThresholdAlert`.
+
+### Private liquidation (live E2E)
+
+```bash
+npm run wave4:live
+# or: npm run wave4:live:wait
+```
+
+**Success:** `PositionOpened` → `LiquidationCheckPrepared` → `PositionLiquidated`.
+
+### Split steps
+
+```bash
+npm run wave4:open
+POSITION_ID=1 npm run wave4:finish
+
+npm run alert:register:arbitrum-sepolia
+npm run alert:prepare:arbitrum-sepolia
+```
+
+### CoFHE timeouts
+
+```bash
+npm run cofhe:wait
+# then retry wave4:live:wait or wave5:live:wait
+```
 
 ---
 
 ## Testing
 
 ```bash
-npx hardhat test
+npm test
 ```
 
-| Wave | Coverage |
+| Area | Coverage |
 |------|----------|
-| 1 | Encrypted submit, feeds, opaque storage |
-| 2 | Whitelist, staleness, consumer pull |
-| 3 | Multi-feeder quorum, median, staking |
-| 4 | **Wave 4:** `PrivateLiquidator` open / `isLiquidatable` / liquidate / keeper flow |
-| 5 | Multi-asset, gas profiling |
+| Ingest | Encrypted submit, feeds, opaque storage |
+| Access | Whitelist, staleness, consumer pull |
+| Quorum | Multi-feeder quorum, encrypted median, staking/slash |
+| Liquidation | `PrivateLiquidator` open / liquidate / keeper flow |
+| Alerts | `PrivateThresholdAlerts` create / trigger / cancel |
+| — | Gas profiling |
 
-**Gas (local, indicative):** `submitPrice` ~80–190k · `liquidate` ~60–68k
+**42 tests passing.**
 
----
-
-## Security model
-
-| Threat | Mitigation |
-|--------|------------|
-| MEV on oracle tick | No plaintext price in storage or public field |
-| Feeder manipulation | Stake (min 0.01 ETH) + owner slash |
-| Feeder collusion | Encrypted median; submissions opaque on-chain |
-| Stale prices | Per-feed TTL revert |
-| Unauthorized read | `AccessRegistry` whitelist |
-| Feed DoS | `pauseFeed` / `resumeFeed` |
-
-**Trust:** owner (use multisig in production); bonded feeders; Fhenix/CoFHE cryptographic correctness.
-
-**Production hardening (future):** multisig owner, pending-check timeouts, verified contracts, supervised keepers with alerting — not all deployed in testnet v1.
+Indicative gas (local): `submitPrice` ~80–190k · `liquidate` ~60–68k
 
 ---
 
-## Wave milestones
+## npm Scripts
 
-| Wave | Focus | Code & tests | Live testnet |
-|------|--------|--------------|--------------|
-| **1** | Encrypted ingest, feeds | ✅ | ✅ Feeder |
-| **2** | Access registry, consumers, UI | ✅ | ✅ [Dashboard](https://fhe-oracle-bridge-demo.surge.sh/) |
-| **3** | Multi-feeder encrypted median | ✅ | 🔄 `npm run wave3:quorum` |
-| **[4](#wave-4--private-liquidation)** | **Private liquidation + keeper** | ✅ | 🔄 `npm run wave4:live` · record txs |
-| **5** | Threshold alerts | ✅ | 🔄 `npm run wave5:live` optional |
+| Script | Purpose |
+|--------|---------|
+| `npm test` | Hardhat suite (42 tests) |
+| `npm run setup:env` | Copy addresses from `frontend/config.json` → `.env` |
+| `npm run demo:preflight` | RPC + CoFHE + feed health check |
+| `npm run wave5:live` | Threshold alert live E2E |
+| `npm run wave5:live:wait` | Wait for CoFHE, then threshold alert E2E |
+| `npm run wave4:live` | Private liquidation live E2E |
+| `npm run wave4:live:wait` | Wait for CoFHE, then liquidation E2E |
+| `npm run submit:live:arbitrum-sepolia` | Refresh live ETH/BTC feeds |
+| `npm run spin` | Feeder + keepers + frontend |
+| `npm run testnet:smoke` | CI-style live validation |
+| `npm run frontend` | Local dashboard |
+| `npm run deploy:frontend:surge` | Publish Surge demo |
+| `npm run deploy:arbitrum-sepolia` | Deploy full stack |
 
-**Wave 4 summary:** encrypted predicate → boolean via CoFHE → keeper completes liquidation. Nothing for MEV bots to front-run on a public price tick. Details: [Wave 4 section](#wave-4--private-liquidation).
+See [`package.json`](./package.json) for the full list.
 
 ---
 
-## Project structure
+## Project Structure
 
-```
+```text
 fhe-oracle-bridge/
 ├── contracts/
 │   ├── FHEOracleBridge.sol / FHEOracleBridgeCofhe.sol / FHEOracleBridgeFhenix.sol
 │   ├── AccessRegistry.sol
 │   ├── MockConsumer*.sol
 │   ├── PrivateLiquidator*.sol
-│   ├── PrivateThresholdAlertsCofhe.sol
-│   └── libraries/MedianLib*.sol
+│   ├── PrivateThresholdAlerts*.sol
+│   ├── libraries/MedianLib*.sol
+│   └── mocks/FHEMock.sol
 ├── scripts/
-│   ├── deploy.js, demoFlow.js, feederDaemon.js
-│   ├── liquidationKeeper.js, thresholdAlertKeeper.js
-│   ├── wave4LiveE2E.js, wave4FinishLiquidation.js, openPositionLive.js  # Wave 4
-│   ├── wave3LiveQuorum.js, wave5LiveE2E.js
-│   ├── spin.sh, testnetSmoke.js, lib/
-│   └── monitoring/
+│   ├── deploy.js
+│   ├── feederDaemon.js
+│   ├── liquidationKeeper.js
+│   ├── thresholdAlertKeeper.js
+│   ├── wave4LiveE2E.js
+│   ├── wave5LiveE2E.js
+│   ├── spin.sh
+│   ├── testnetSmoke.js
+│   └── lib/
 ├── frontend/
 │   ├── index.html
 │   └── config.json
 ├── test/FHEOracleBridge.test.js
+├── .github/workflows/
 ├── hardhat.config.js
 └── package.json
 ```
+
+---
+
+## Security & Privacy Rules
+
+FHE Oracle Bridge follows these rules:
+
+1. **No plaintext price in contract storage or public fields.**
+2. **No sync `FHE.decrypt` on CoFHE testnet** — use async keeper pattern.
+3. **Only booleans cross the CoFHE threshold boundary** for liquidation and alerts.
+4. **Whitelisted consumers only** may call `getEncryptedPrice`.
+5. **Per-feed TTL** — stale ciphertext cannot be consumed.
+6. **Feeders bond ETH** — slashable for misbehavior (owner-controlled v1).
+7. **Feeders see spot before encrypting** — on-chain privacy holds; off-chain feeder honesty is a trust assumption.
+8. **Never commit `PRIVATE_KEY`** or `.env` to git.
+
+| Threat | Mitigation |
+|--------|------------|
+| MEV on oracle tick | No public USD field |
+| Unauthorized read | `AccessRegistry` |
+| Stale prices | TTL revert |
+| Feeder griefing | Stake + slash |
+| Feed DoS | `pauseFeed` / `resumeFeed` |
+
+**Production hardening (future):** multisig owner, pending-check timeouts, verified contracts, decentralized keeper market.
+
+---
+
+## Market Potential
+
+```mermaid
+flowchart TD
+    A[FHE Oracle Bridge] --> B[Lending protocols]
+    A --> C[Perps & options]
+    A --> D[DAO treasuries]
+    A --> E[Institutional DeFi]
+    A --> F[Fhenix app ecosystem]
+
+    B --> G[Private liquidations]
+    C --> H[Private stop / alert levels]
+    D --> I[Non-public risk monitoring]
+    E --> J[Compliance-friendly rails]
+    F --> K[Reference oracle + consumers]
+```
+
+**Why now:** CoFHE on L2 testnets makes FHE predicates practical. Public oracle ticks remain the default — creating a clear gap for privacy-first infrastructure.
+
+---
+
+## Roadmap
+
+```mermaid
+timeline
+    title FHE Oracle Bridge Milestones
+
+    section Shipped
+        Encrypted ingest + feeds
+        AccessRegistry + dashboard
+        Multi-feeder encrypted median
+        Private liquidation + keeper
+        Threshold alerts + keeper
+
+    section Next
+        Verified contracts : Arbiscan verification
+        Multi-feeder production : 3+ feeder quorum on mainnet path
+        Keeper incentives : Economic security for decrypt bots
+
+    section Future
+        Multisig governance : Owner → timelock
+        Cross-chain feeds : Base + Arbitrum parity
+        Integrator SDK : npm package for consumer devs
+```
+
+---
+
+## Quality Checklist
+
+Submission status for the Fhenix buildathon:
+
+- [x] CoFHE contracts deployed on Arbitrum Sepolia
+- [x] Live liquidation E2E
+- [x] Live threshold alert E2E
+- [x] 42 Hardhat tests passing
+- [x] Feeder daemon (live CoinGecko + Binance)
+- [x] Liquidation + threshold keepers
+- [x] Live dashboard (fintech hero + operational UI)
+- [x] CI: Hardhat tests + testnet smoke
+- [x] README with judging criteria mapping
+- [x] `.env.example` + `npm run setup:env`
+- [ ] Demo video (optional — add link here)
+
+### Engineering checklist
+
+- [x] All npm demo scripts documented
+- [x] No plaintext price in UI by design
+- [x] Privacy proof panel on dashboard
+- [x] Arbiscan links for deployed contracts
+- [x] CoFHE retry helpers for flaky testnet
+- [ ] Contract verification on Arbiscan (optional)
+
+---
+
+## Final Demo Flow
+
+```mermaid
+flowchart TD
+    A[Open live dashboard] --> B[Connect wallet — Arbitrum Sepolia]
+    B --> C[Click Refresh]
+    C --> D[See feed round + freshness — no USD]
+    D --> E[Read privacy proof panel]
+    E --> F[Open Event log / Activity]
+    F --> G[See ThresholdCheckPrepared + ThresholdAlert]
+    G --> H[Verify on Arbiscan — no public price field]
+    H --> I[Optional: npm run wave5:live locally]
+```
+
+**5-minute judge path:**
+
+1. https://fhe-oracle-bridge-demo.surge.sh/
+2. Connect wallet → Refresh
+3. Privacy proof + live feed cards
+4. Event log → predicate + bool events
+5. [Oracle on Arbiscan](https://sepolia.arbiscan.io/address/0x4c1A39704D65992464C4BE356c1A0BA001526dC3) — no `latestAnswer` USD field
 
 ---
 
@@ -572,10 +1014,12 @@ fhe-oracle-bridge/
 
 | Issue | Fix |
 |-------|-----|
-| `ZK_VERIFY_FAILED` / CoFHE timeout | `npm run cofhe:wait` then retry |
+| `ZK_VERIFY_FAILED` / CoFHE timeout | `npm run cofhe:wait` then `wave5:live:wait` / `wave4:live:wait` |
+| Stale feeds | `npm run submit:live:arbitrum-sepolia` or `npm run spin` |
+| `Feed did not update after submitPrice` | Wallet must be registered feeder with ≥ 0.01 ETH stake |
+| `Quorum pending` | Add `FEEDER2_PRIVATE_KEY` or deploy with `minFeeders=1` |
+| `consumer not whitelisted` | Re-run deploy or `registry.whitelist` |
 | `Set POSITION_ID` | `POSITION_ID=N npm run wave4:finish` |
-| `consumer not whitelisted` | Re-run deploy whitelisting or `registry.whitelist` |
-| Stale feeds | `npm run spin` or `npm run submit:live:arbitrum-sepolia` |
 | Low ETH | [Arbitrum Sepolia faucet](https://www.alchemy.com/faucets/arbitrum-sepolia) |
 | Wrong dashboard contracts | Sync `frontend/config.json` with `.env` |
 
@@ -595,3 +1039,9 @@ fhe-oracle-bridge/
 ## License
 
 MIT © 2025 FHE Oracle Bridge
+
+---
+
+## One-Line Summary
+
+**FHE Oracle Bridge is a Fhenix CoFHE price oracle that stores encrypted market data on-chain, aggregates with an encrypted median, and lets DeFi protocols liquidate and alert via FHE predicates that reveal only a boolean — never a public USD tick.**

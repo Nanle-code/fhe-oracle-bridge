@@ -48,7 +48,9 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\nPreflight OK — run: npm run wave4:live");
+  console.log("\nPreflight OK — run:");
+  console.log("  npm run wave4:live   # private liquidation E2E");
+  console.log("  npm run wave5:live   # threshold alerts E2E (final wave)");
 }
 
 main().catch((e) => {
